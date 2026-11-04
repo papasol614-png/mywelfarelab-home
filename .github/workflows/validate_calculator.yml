@@ -6,6 +6,7 @@ on:
       - 'calculator.html'
       - 'calculator.css'
       - 'index.html'
+      - 'tests/calculators.test.js'
       - '.github/workflows/validate_calculator.yml'
   workflow_dispatch:
 permissions:
@@ -19,6 +20,7 @@ jobs:
         run: |
           node --check calculator.js
           node --check app.js
+          node tests/calculators.test.js
       - name: Check calculator routes and linked assets
         run: |
           python - <<'PY'
