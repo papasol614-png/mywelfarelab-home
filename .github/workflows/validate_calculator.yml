@@ -1,0 +1,37 @@
+name: Validate welfare calculator
+on:
+  push:
+    paths:
+      - 'calculator.js'
+      - 'calculator.html'
+      - 'calculator.css'
+      - 'index.html'
+      - '.github/workflows/validate_calculator.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check calculator.js
+          node --check app.js
+      - name: Check calculator routes and linked assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html=Path("index.html").read_text(encoding="utf-8")
+          page=Path("calculator.html").read_text(encoding="utf-8")
+          code=Path("calculator.js").read_text(encoding="utf-8")
+          ids=("basic","disability","single","youth","work","scholarship")
+          for key in ids:
+              assert f'calculator.html#{key}' in html, f"Missing card: {key}"
+              assert f'{key}:{{' in code, f"Missing calculation spec: {key}"
+          assert 'calculator.css' in page and 'calculator.js' in page
+          for name in ('calculator.html','calculator.css','calculator.js','styles.css'):
+              assert Path(name).is_file(), name
+          print("6 calculator routes and files validated.")
+          PY
