@@ -3,7 +3,7 @@
 const MEDIAN=[0,2564238,4199292,5359036,6494738,7556719,8555952];
 const fmt=n=>Number(n).toLocaleString('ko-KR')+'원';
 const source={
- basic:[['보건복지부 2026 선정기준','https://www.mohw.go.kr/menu.es?mid=a10708010300']],
+ basic:[['보건복지부 2026 선정기준','https://www.mohw.go.kr/menu.es?mid=a10708010300'],['복지로 공식 모의계산','https://www.bokjiro.go.kr']],
  disability:[['2026 장애인연금 선정기준 고시','https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000272272']],
  single:[['성평등가족부 한부모지원','https://www.mogef.go.kr/sp/fam/sp_fam_f007.do'],['경기도 한부모 양육비 지원','https://www.gg.go.kr/contents/contents.do?ciIdx=987102&menuId=266062']],
  youth:[['복지로 청년월세 모의계산','https://www.bokjiro.go.kr/ssis-tbu/twatbz/mkclAsis/SelfDiagnosisYouthHousView.do']],
@@ -50,7 +50,7 @@ function incomeEstimate(v){
  // 기본재산액은 주거용 → 일반 → 금융 순으로 공제.
  let housing=Math.max(0,rawHome-allowance);allowance=Math.max(0,allowance-rawHome);
  let general=Math.max(0,rawGeneral-allowance);allowance=Math.max(0,allowance-rawGeneral);
- let finance=Math.max(0,rawFin-allowance);
+ let finance=Math.max(0,rawFin-5000000-allowance);
  // 인정 부채를 같은 순서로 단순 차감하는 간이 계산. 법정 우선순위와 다를 수 있습니다.
  let leftDebt=debt;
  const subtractDebt=(amount)=>{const deduct=Math.min(amount,leftDebt);leftDebt-=deduct;return amount-deduct};
@@ -81,7 +81,7 @@ function select(key){
  result.hidden=true;
  history.replaceState(null,'','#'+key);
 }
-function updateMode(){const mode=el.querySelector('[name=amountMode]')?.value||'manual';const auto=mode==='auto';const fields=el.querySelector('.asset-inputs');if(fields){fields.hidden=!auto;fields.querySelectorAll('input,select').forEach(node=>node.disabled=!auto);}const recognized=el.querySelector('[name=recognized]');if(recognized){recognized.closest('label').hidden=auto;recognized.disabled=auto;if(!auto&&recognized.value==='')recognized.value='0';}}
+function updateMode(){const mode=el.querySelector('[name=amountMode]')?.value||'manual';const auto=mode==='auto';const fields=el.querySelector('.asset-inputs');if(fields){fields.hidden=!auto;fields.querySelectorAll('input,select').forEach(node=>node.disabled=!auto);}const recognized=el.querySelector('[name=recognized]');if(recognized){recognized.closest('label').hidden=auto;recognized.disabled=auto;}}
 el.addEventListener('change',e=>{if(e.target.name==='amountMode')updateMode()});
 const row=(name,value,status='')=>'<tr><td>'+esc(name)+'</td><td class="'+status+'">'+esc(value)+'</td></tr>';
 const table=rows=>'<table class="calc-table"><thead><tr><th>확인 항목</th><th>결과</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
@@ -93,7 +93,7 @@ function calc(key,v){
   rows.push(row('간이 소득평가액',fmt(estimate.income)));
   rows.push(row('간이 재산 월 소득환산액',fmt(estimate.property)));
   rows.push(row('간이 월 소득인정액 합계',fmt(estimate.total)));
-  note.push('이 금액은 간이 추정치입니다. 주거용재산 한도·임대보증금 평가·금융 생활준비금·공제 항목·부채 차감 순서 및 자동차 특례 등의 정확한 심사가 필요합니다. 실제 소득인정액과 다를 수 있습니다.');
+  note.push('이 금액은 간이 추정치이며 금융재산 생활준비금 500만원 공제를 반영했습니다. 주거용재산 한도·임대보증금 평가·장기저축 공제·공제 항목·부채 차감 순서 및 자동차 특례 등의 정확한 심사가 필요합니다. 실제 소득인정액과 다를 수 있습니다.');
   if(estimate.unresolved)note.push('선택한 소득공제 또는 자동차의 특례 기준이 미확인 상태입니다. 계산값을 수급 가능성 판정에 사용하지 마세요.');
  }
 
