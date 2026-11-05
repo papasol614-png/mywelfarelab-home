@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const dummy=()=>({innerHTML:'',hidden:false,addEventListener(){},focus(){},scrollIntoView(){}});
+const dummy=()=>({innerHTML:'',hidden:false,addEventListener(){},querySelectorAll(){return []},querySelector(){return null},focus(){},scrollIntoView(){}});
 const nodes={'#calculator-form':dummy(),'#calc-heading':dummy(),'#calc-explainer':dummy(),'#calculator-result':dummy()};
 const document={querySelector:s=>nodes[s]||dummy(),querySelectorAll:()=>[]};
 const context={document,location:{hash:''},history:{replaceState(){}},console,Number,String,Math,Array,Object,FormData,alert(){}};
