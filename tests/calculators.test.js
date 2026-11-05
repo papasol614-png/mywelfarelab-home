@@ -4,7 +4,7 @@ const nodes={'#calculator-form':dummy(),'#calc-heading':dummy(),'#calc-explainer
 const document={querySelector:s=>nodes[s]||dummy(),querySelectorAll:()=>[]};
 const context={document,location:{hash:''},history:{replaceState(){}},console,Number,String,Math,Array,Object,FormData,alert(){}};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;',context);
+vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;',context);
 const calc=context.testCalc, spec=context.testSpec;
 assert.strictEqual(Object.keys(spec).length,6);
 for(const k of Object.keys(spec))assert(calc(k,Object.fromEntries(spec[k].fields.map(f=>[f.name,f.type==='select'?f.options[0][0]:'0']))).rows.length>0,k);
@@ -20,4 +20,13 @@ const work=calc('work',{household:'one',income:'22000000',property:'180000000',c
 assert(work.rows.some(x=>x.includes('50%')));
 const scholarship=calc('scholarship',{segment:'1',tuition:'4200000'});
 assert(scholarship.rows.some(x=>x.includes('4,200,000')));
-console.log('6 calculator baseline cases passed.');
+
+const est=context.testIncomeEstimate({region:'gyeonggi',workerType:'disabled',earned:1100000,otherIncome:460000,homeAsset:80000000,generalAsset:0,financialAsset:9000000,debts:25000000,carType:'none',carValue:0});
+assert(est.total>=460000 && est.total<1600000,JSON.stringify(est));
+const pension=context.testPensionEstimate({pRegion:'metro',workerSelf:1100000,workerSpouse:0,pOtherIncome:460000,pGeneral:80000000,pFinancial:9000000,pDebt:25000000,pLuxury:0});
+assert(pension.total===565000,JSON.stringify(pension));
+const childScholarship=calc('scholarship',{segment:'9',childOrder:'multi3',tuition:'5000000'});
+assert(childScholarship.rows.some(x=>x.includes('2,000,000')));
+const grant=calc('work',{household:'one',income:'22000000',gross:'12000000',property:'180000000',children:'1',hasEarned:'yes'});
+assert(grant.rows.some(x=>x.includes('1,425,000')),grant.rows.join('\\n'));
+console.log('6 calculator routes + 4 additional income, pension, scholarship and grant tests passed.');
