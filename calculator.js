@@ -91,6 +91,7 @@ function buildField(f){
  const help=f.help?'<small>'+esc(f.help)+'</small>':'';
  let control;
  if(f.type==='select')control='<select required name="'+esc(f.name)+'">'+f.options.map(p=>'<option value="'+esc(p[0])+'">'+esc(p[1])+'</option>').join('')+'</select>';
+ else if(f.label.includes('(원)'))control='<input required type="text" inputmode="numeric" data-money="true" name="'+esc(f.name)+'" pattern="[0-9,]+" placeholder="0" autocomplete="off">';
  else control='<input required type="number" inputmode="numeric" name="'+esc(f.name)+'" min="0" step="'+(f.step||1)+'" placeholder="0">';
  return '<label class="calc-field">'+esc(f.label)+control+help+'</label>';
 }
@@ -105,6 +106,20 @@ function select(key){
 }
 function updateMode(){const mode=el.querySelector('[name=amountMode]')?.value||'manual';const auto=mode==='auto';const fields=el.querySelector('.asset-inputs');if(fields){fields.hidden=!auto;fields.querySelectorAll('input,select').forEach(node=>node.disabled=!auto);}const recognized=el.querySelector('[name=recognized]');if(recognized){recognized.closest('label').hidden=auto;recognized.disabled=auto;}}
 el.addEventListener('change',e=>{if(e.target.name==='amountMode')updateMode()});
+
+// Format currency fields while retaining the caret near the user's edit position.
+function formatMoneyInput(input){
+ const before=input.selectionStart??input.value.length;
+ const digitsBefore=input.value.slice(0,before).replace(/[^0-9]/g,'').length;
+ const digits=input.value.replace(/[^0-9]/g,'');
+ const formatted=digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');
+ input.value=formatted;
+ let caret=0,seen=0;
+ while(caret<formatted.length&&seen<digitsBefore){if(/[0-9]/.test(formatted[caret]))seen++;caret++;}
+ input.setSelectionRange(caret,caret);
+}
+el.addEventListener('input',event=>{const input=event.target;if(input.matches?.('input[data-money="true"]'))formatMoneyInput(input);});
+
 const row=(name,value,status='')=>'<tr><td>'+esc(name)+'</td><td class="'+status+'">'+esc(value)+'</td></tr>';
 const table=rows=>'<table class="calc-table"><thead><tr><th>확인 항목</th><th>결과</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
 const yes=(b)=>b?'기준 이내 — 추가 심사 필요':'기준 초과 또는 요건 불충족';
@@ -199,7 +214,7 @@ function render(key,v){
  result.innerHTML='<div class="result-hero"><strong>'+esc(x.title)+' 결과</strong><span>'+(key==='basic'?'선택한 가구원 수에 따른 2026년 선정기준표입니다. 수급 가능 여부나 지급액은 산출하지 않습니다.':'2026년 공식 기준으로 입력한 값을 비교했습니다. 이 결과는 확정 판정이 아닙니다.')+'</span></div>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>반드시 알아두세요</h3><p>'+esc(x.caveat)+'</p><div class="source-links">'+links+'</div><button type="button" class="calc-action" id="calcAgain">다른 조건으로 다시 확인하기</button>';
  result.hidden=false;result.focus({preventScroll:true});result.scrollIntoView({behavior:'smooth',block:'start'});
 }
-el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const f of [...spec[chosen].fields,...((chosen==='basic'||chosen==='single')&&values.amountMode==='auto'?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
+el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}for(const f of [...spec[chosen].fields,...((chosen==='basic'||chosen==='single')&&values.amountMode==='auto'?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
 document.querySelectorAll('.calc-tab').forEach(b=>b.addEventListener('click',()=>select(b.dataset.id)));
 result.addEventListener('click',e=>{if(e.target.id==='calcAgain'){result.hidden=true;el.querySelector('input,select')?.focus();document.querySelector('#calc-heading').scrollIntoView({behavior:'smooth',block:'start'});}});
 select(spec[location.hash.substring(1)]?location.hash.substring(1):'basic');
