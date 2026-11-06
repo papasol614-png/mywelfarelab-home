@@ -23,6 +23,17 @@ const disability=calc('disability',{age:'56',severity:'yes',couple:'no',recogniz
 assert(disability.rows.some(x=>x.includes('주요 조건 충족 가능')));
 const single=calc('single',{persons:'2',parentAge:'40',childAge:'7',recognized:'2000000'});
 assert(single.rows.some(x=>x.includes('2,729,540')));
+const parent30=calc('single',{persons:'2',familyStatus:'yes',parentAge:'30',childAge:'7',highSchool:'no',additionalCategory:'no',recognized:'1500000'});
+assert.strictEqual(parent30.summary.amount,'330,000원');
+const parent40=calc('single',{persons:'2',familyStatus:'yes',parentAge:'40',childAge:'4',highSchool:'no',additionalCategory:'yes',recognized:'1500000'});
+assert.strictEqual(parent40.summary.amount,'330,000원');
+const teenParent=calc('single',{persons:'2',familyStatus:'yes',parentAge:'23',childAge:'1',highSchool:'no',additionalCategory:'no',recognized:'1500000'});
+assert.strictEqual(teenParent.summary.amount,'400,000원');
+const olderStudent=calc('single',{persons:'2',familyStatus:'yes',parentAge:'40',childAge:'18',highSchool:'yes',additionalCategory:'no',recognized:'1500000'});
+assert.strictEqual(olderStudent.summary.amount,'230,000원');
+const unverifiedFamily=calc('single',{persons:'2',familyStatus:'unknown',parentAge:'40',childAge:'7',highSchool:'no',additionalCategory:'no',recognized:'1500000'});
+assert.strictEqual(unverifiedFamily.summary.amount,'금액 산정 보류');
+
 const youth=calc('youth',{birthYear:'2000',independent:'yes',homeless:'yes',publicLease:'no',exempt:'yes',youngPersons:'1',youngIncome:'1000000',youngProperty:'1000000',originPersons:'3',originIncome:'0',originProperty:'0',rent:'250000'});
 assert(youth.rows.some(x=>x.includes('200,000')));
 const work=calc('work',{household:'one',income:'22000000',property:'180000000',children:'1',hasEarned:'yes'});
@@ -35,6 +46,9 @@ assert(est.total>=460000 && est.total<1600000,JSON.stringify(est));
 const pension=context.testPensionEstimate({pRegion:'metro',workerSelf:1100000,workerSpouse:0,pOtherIncome:460000,pGeneral:80000000,pFinancial:9000000,pDebt:25000000,pLuxury:0});
 assert(pension.total===565000,JSON.stringify(pension));
 const childScholarship=calc('scholarship',{segment:'9',childOrder:'multi3',tuition:'5000000'});
+assert.strictEqual(childScholarship.summary.amount,'금액 산정 보류');
+const thirdChildConfirmed=calc('scholarship',{segment:'9',childOrder:'multi3',familyChildren:'yes',tuition:'5000000'});
+assert.strictEqual(thirdChildConfirmed.summary.amount,'2,000,000원');
 assert(childScholarship.rows.some(x=>x.includes('2,000,000')));
 const grant=calc('work',{household:'one',income:'22000000',gross:'12000000',property:'180000000',children:'1',hasEarned:'yes'});
 assert(grant.rows.some(x=>x.includes('공식 산정표 확인 필요')),grant.rows.join('\\n'));
