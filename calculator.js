@@ -139,7 +139,7 @@ const row=(name,value,status='')=>'<tr><td>'+esc(name)+'</td><td class="'+status
 const table=rows=>'<table class="calc-table"><thead><tr><th>확인 항목</th><th>결과</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
 const yes=(b)=>b?'기준 이내 — 추가 심사 필요':'기준 초과 또는 요건 불충족';
 function calc(key,v){
- const warn=[],rows=[],note=[];let summary={tone:'review',status:'추가 확인 필요',amount:'금액 확인 필요',unit:'',detail:'현재 입력 정보만으로 실제 지급액을 확정할 수 없습니다.',reasons:[]};
+ const warn=[],rows=[],note=[];let unresolvedEstimate=false;let summary={tone:'review',status:'추가 확인 필요',amount:'금액 확인 필요',unit:'',detail:'현재 입력 정보만으로 실제 지급액을 확정할 수 없습니다.',reasons:[]};
  if(key==='disability'&&v.amountMode==='auto'){
   const e=pensionEstimate(v);v={...v,recognized:String(e.total)};
   rows.push(row('장애인연금 월 소득평가액 추정',fmt(e.income)));
@@ -148,7 +148,7 @@ function calc(key,v){
   note.push('장애인연금법 기준의 간이 추정입니다. 금융기관 조사, 자동차 특례, 부채 인정 여부, 사적이전소득 및 배우자 재산 등은 실제 조사와 차이가 날 수 있습니다.');
  }
  if((key==='basic'||key==='single')&&(key==='basic'||v.amountMode==='auto')){
-  const estimate=incomeEstimate(v);v={...v,recognized:String(estimate.total)};
+  const estimate=incomeEstimate(v);unresolvedEstimate=estimate.unresolved;v={...v,recognized:String(estimate.total)};
   rows.push(row('근로소득 공제액',fmt(estimate.incomeDeduction)));
   rows.push(row('지역별 기본재산액 공제',fmt(estimate.baseAllowance)));
   rows.push(row('주거용재산 인정 한도',fmt(estimate.residentialCap)));
@@ -239,6 +239,9 @@ function calc(key,v){
    const capped=Math.min(amount,+v.tuition);
    summary={tone:amount===0?'not':'review',status:amount===0?'해당 지원구간 기본 상한 없음':'지원구간별 상한 확인',amount:fmt(capped),unit:'연간 등록금 기준 지원상한 · 실지급액 아님',detail:'한국장학재단의 학자금 지원구간·학적·성적·중복지원 심사를 거쳐 결정됩니다.',reasons:['입력 등록금: '+fmt(+v.tuition),'등록금 범위 내에서만 지원','다자녀 여부에 따라 상한 차이']};
  }
+ if(unresolvedEstimate){
+    summary={...summary,tone:'review',status:'특례 확인 전 판정 불가',amount:'금액 산정 보류',unit:'자동차·근로소득 특례 등을 확인하세요',detail:'선택한 조건에는 적용 방식이 불확실한 특례가 있어 소득기준 비교만으로 수급 가능성을 판단할 수 없습니다.',reasons:[...summary.reasons,'자동차 및 근로소득 특례 여부를 담당 기관에 확인하세요']};
+ }
  return {rows,note,summary};
 }
 function render(key,v){
@@ -249,7 +252,7 @@ function render(key,v){
  result.innerHTML='<div class="outcome-top"><p class="outcome-kicker">내 복지 결과 · '+year+'년 기준 사전 점검</p><h2>'+esc(x.title)+'</h2><div class="outcome-grid outcome-main"><div class="outcome-panel outcome-'+esc(info.tone)+'"><span>대상 가능성</span><strong>'+esc(info.status)+'</strong><small>'+esc(info.detail)+'</small></div><div class="outcome-panel"><span>확인 가능한 금액</span><strong>'+esc(info.amount)+'</strong><small>'+esc(info.unit)+'</small></div></div>'+sectionCards+'</div><section class="outcome-next"><h3>왜 이렇게 나왔나요?</h3><ul>'+reasons+'</ul><p class="result-note">수급 확정 판정이 아닙니다. 제도별 공제·특례·신청시기와 담당기관 심사를 확인해야 합니다.</p></section><section class="outcome-actions"><h3>다음 단계</h3><div class="source-links">'+links+'</div><a class="result-cafe" href="https://cafe.naver.com/mywelfarelab" target="_blank" rel="noopener noreferrer">카페에서 신청·서류 질문하기 ↗</a></section><details class="outcome-details"><summary>계산 근거와 세부 기준 자세히 보기</summary>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>적용 범위와 주의사항</h3><p>'+esc(x.caveat)+'</p></details><button type="button" class="calc-action" id="calcAgain">입력값 수정해서 다시 계산 →</button>';
  result.hidden=false;result.focus({preventScroll:true});result.scrollIntoView({behavior:'smooth',block:'start'});
 }
-el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}for(const f of [...spec[chosen].fields,...((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if((f.type==='number'||f.type==='select')&&(!values[f.name]&&f.type==='select')){alert('선택하지 않은 항목이 있습니다.');return;}if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
+el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}if((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))&&values.carType==='none'&&Number(values.carValue||0)>0){alert('자동차가액이 0원이 아닙니다. 자동차 처리 방식을 다시 선택하세요.');return;}for(const f of [...spec[chosen].fields,...((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if((f.type==='number'||f.type==='select')&&(!values[f.name]&&f.type==='select')){alert('선택하지 않은 항목이 있습니다.');return;}if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
 document.querySelectorAll('.calc-tab').forEach(b=>b.addEventListener('click',()=>select(b.dataset.id)));
 result.addEventListener('click',e=>{if(e.target.id==='calcAgain'){result.hidden=true;el.querySelector('input,select')?.focus();document.querySelector('#calc-heading').scrollIntoView({behavior:'smooth',block:'start'});}});
 select(spec[location.hash.substring(1)]?location.hash.substring(1):'basic');
