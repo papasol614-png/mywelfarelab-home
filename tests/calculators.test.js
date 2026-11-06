@@ -4,7 +4,7 @@ const nodes={'#calculator-form':dummy(),'#calc-heading':dummy(),'#calc-explainer
 const document={querySelector:s=>nodes[s]||dummy(),querySelectorAll:()=>[]};
 const context={document,location:{hash:''},history:{replaceState(){}},console,Number,String,Math,Array,Object,FormData,alert(){}};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;',context);
+vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;',context);
 const calc=context.testCalc, spec=context.testSpec;
 assert.strictEqual(Object.keys(spec).length,6);
 for(const k of Object.keys(spec))assert(calc(k,Object.fromEntries(spec[k].fields.map(f=>[f.name,f.type==='select'?f.options[0][0]:'0']))).rows.length>0,k);
@@ -40,4 +40,13 @@ assert(grant.rows.some(x=>x.includes('공식 산정표 확인 필요')),grant.ro
 assert(!grant.rows.some(x=>x.includes('1,425,000')));
 assert(calc('basic',{year:'2027',persons:'2',recognized:'1200000'}).summary.status.includes('가능'));
 assert(calc('scholarship',{segment:'9',childOrder:'normal',tuition:'3000000'}).summary.amount==='1,000,000원');
-console.log('6 calculator routes + 4 additional income, pension, scholarship and grant tests passed.');
+
+// Result-first view must not imply confirmed payment.
+context.testRender('basic',{year:'2027',persons:'2',amountMode:'auto',region:'gyeonggi',workerType:'regular',earned:'1000000',otherIncome:'0',homeAsset:'0',generalAsset:'0',financialAsset:'0',debts:'0',carType:'none',carValue:'0'});
+assert(nodes['#calculator-result'].innerHTML.includes('대상 가능성'));
+assert(nodes['#calculator-result'].innerHTML.includes('2027년 기준 사전 점검'));
+assert(nodes['#calculator-result'].innerHTML.includes('왜 이렇게 나왔나요?'));
+assert(nodes['#calculator-result'].innerHTML.includes('계산 근거와 세부 기준 자세히 보기'));
+assert(nodes['#calculator-result'].innerHTML.includes('실제 지급액')||nodes['#calculator-result'].innerHTML.includes('실제 지급액 아님'));
+assert(nodes['#calculator-result'].innerHTML.includes('수급 확정 판정이 아닙니다'));
+console.log('Six calculators, official 2027 rates and accessible result-first layout validated.');
