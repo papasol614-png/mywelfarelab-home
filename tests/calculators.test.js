@@ -147,4 +147,26 @@ assert.strictEqual(confirmedDebt.property,104000);
 const unknownCars=assetCase({region:'gyeonggi',carType:'unknown',carValue:10000000});
 assert.strictEqual(unknownCars.unresolved,true);
 
-console.log('Six calculators and 2026 asset/income deduction, vehicle and debt uncertainty regressions validated.');
+
+/* Official provider 2026 policy parity scenarios for the other five tools. */
+const dp=context.testPensionEstimate({pRegion:'metro',workerSelf:1200000,workerSpouse:1000000,pOtherIncome:0,pGeneral:0,pFinancial:0,pDebt:0,pLuxury:0});
+assert.strictEqual(dp.income,210000); // (1.2m-950k)*70% + (1m-950k)*70%
+assert.strictEqual(dp.total,210000);
+const disabilityNo=calc('disability',{age:'17',severity:'yes',couple:'no',recognized:'0'});
+assert(!disabilityNo.summary.status.includes('충족 가능'));
+const verified2026Single=calc('single',{persons:'2',familyStatus:'yes',parentAge:'45',childAge:'7',highSchool:'no',additionalCategory:'no',recognized:'2700000'});
+assert(verified2026Single.summary.status.includes('해당 가능'));
+const rentCap=calc('youth',{birthYear:'2000',independent:'yes',homeless:'yes',publicLease:'no',exempt:'yes',youngPersons:'1',youngIncome:'0',youngProperty:'0',originPersons:'2',originIncome:'0',originProperty:'0',rent:'250000'});
+assert.strictEqual(rentCap.summary.amount,'200,000원');
+const workLimit=calc('work',{household:'one',income:'32000000',property:'100000000',children:'1',hasEarned:'yes'});
+assert(workLimit.summary.status.includes('불충족'));
+const grantHalf=calc('work',{household:'one',income:'20000000',property:'170000000',children:'1',hasEarned:'yes'});
+assert(grantHalf.rows.some(x=>x.includes('50%')));
+const scholarshipNormal=calc('scholarship',{segment:'1',childOrder:'normal',familyChildren:'no',tuition:'8000000'});
+assert.strictEqual(scholarshipNormal.summary.amount,'6,000,000원');
+const scholarshipMulti12=calc('scholarship',{segment:'1',childOrder:'multi12',familyChildren:'yes',tuition:'8000000'});
+assert.strictEqual(scholarshipMulti12.summary.amount,'6,100,000원');
+const scholarshipMulti3=calc('scholarship',{segment:'8',childOrder:'multi3',familyChildren:'yes',tuition:'5000000'});
+assert.strictEqual(scholarshipMulti3.summary.amount,'5,000,000원');
+
+console.log('Six calculators, 2026-2027 official thresholds, 2026 deductions, scholarship, pension, one-parent, rent and tax criteria validated.');
