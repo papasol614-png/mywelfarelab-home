@@ -5,7 +5,7 @@ const MEDIAN=[0,2564238,4199292,5359036,6494738,7556719,8555952];
 const MEDIAN_2027=[0,2736042,4480645,5718091,6929885,8063019,9129201];
 const fmt=n=>Number(n).toLocaleString('ko-KR')+'원';
 const source={
- basic:[['보건복지부 2026 선정기준','https://www.mohw.go.kr/menu.es?mid=a10708010300'],['2027년 확정 기준 보도자료','https://m.korea.kr/briefing/pressReleaseView.do?newsId=156772464'],['복지로 공식 모의계산','https://www.bokjiro.go.kr']],
+ basic:[['보건복지부 2026 선정기준','https://www.mohw.go.kr/menu.es?mid=a10708010300'],['2027년 확정 기준 보도자료','https://m.korea.kr/briefing/pressReleaseView.do?newsId=156772464'],['복지로 국민기초생활보장 모의계산','https://www.bokjiro.go.kr/ssis-tbu/twatbz/mkclAsis/mkclPage.do'],['정부24 혜택알리미','https://plus.gov.kr/']],
  disability:[['2026 장애인연금 선정기준 고시','https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000272272']],
  single:[['성평등가족부 한부모지원','https://www.mogef.go.kr/sp/fam/sp_fam_f007.do'],['경기도 한부모 양육비 지원','https://www.gg.go.kr/contents/contents.do?ciIdx=987102&menuId=266062']],
  youth:[['복지로 청년월세 모의계산','https://www.bokjiro.go.kr/ssis-tbu/twatbz/mkclAsis/SelfDiagnosisYouthHousView.do']],
@@ -30,7 +30,7 @@ const assetFields=[
  s('region','거주지역',[['','거주지역 선택'],['seoul','서울'],['gyeonggi','경기'],['metro','광역시·세종·창원'],['other','그 외 지역']]),
  s('workerType','근로소득 공제',[['','공제 유형 선택'],['regular','일반 30%'],['disabled','등록장애인 등: 20만원 공제 후 30%'],['young','34세 이하 청년: 60만원 공제 후 30%'],['special','기타 특례 / 공제액 확인 필요']]),
  n('earned','월 근로·사업소득 (원)','가구의 월 근로·사업소득 합계. 특례 대상자가 여러 명이면 간이 추정치가 부정확할 수 있습니다.',1),
- n('otherIncome','월 연금·기타 소득 (원)','공적연금·사업외 소득 등 심사에 산입되는 금액을 입력하세요.',1),
+ n('otherIncome','월 연금·기타 소득 (원)','국민연금 등 소득으로 산입되는 금액만 입력하세요. 장애인연금·한부모 아동양육비 등 법정 제외 소득은 중복 입력하지 마세요.',1),
  n('rentalDeposit','거주 주택 임차보증금 (원)','주거용 임차보증금인 경우 95%를 재산가액으로 평가합니다. 실제 인정 여부는 확인이 필요합니다.',1),
  n('homeAsset','본인 소유 거주주택 재산가액 (원)','직접 거주하는 소유 주택의 조사 기준 가액. 임차보증금과 중복 입력하지 마세요.',1),
  n('generalAsset','기타 일반재산 (원)','토지·건물 등 일반재산 가액',1),
