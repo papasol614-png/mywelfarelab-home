@@ -80,4 +80,26 @@ const youngAdult=assetCase({region:'seoul',earned:1000000,workerType:'young'});
 assert.strictEqual(youngAdult.income,280000);
 assert.strictEqual(youngAdult.incomeDeduction,720000);
 
-console.log('Six calculators and 9 official 2026 basic asset deduction regression cases validated.');
+
+/* Cross-check high-risk deduction and asset classification boundaries. */
+const perPerson=assetCase({region:'gyeonggi',earned:1100000,workerType:'disabled',earned2:1000000,workerType2:'young'});
+assert.strictEqual(perPerson.income,910000); // 630,000 + 280,000
+assert.strictEqual(perPerson.incomeDeduction,1190000);
+const rehab=assetCase({region:'gyeonggi',earned:1000000,workerType:'rehab'});
+assert.strictEqual(rehab.income,400000);
+assert.strictEqual(rehab.incomeDeduction,600000);
+const carNormal=assetCase({region:'gyeonggi',carType:'normal',carValue:10000000});
+assert.strictEqual(carNormal.property,0); // General-property classified car within basic asset exemption
+const carFull=assetCase({region:'gyeonggi',carType:'full',carValue:10000000});
+assert.strictEqual(carFull.property,10000000); // 100% type, no general asset deduction
+const carMixed=assetCase({region:'gyeonggi',homeAsset:80000000,carType:'normal',carValue:10000000});
+assert.strictEqual(carMixed.property,417000);
+const unverifiedDebt=assetCase({region:'gyeonggi',homeAsset:100000000,debts:10000000,debtStatus:'unknown'});
+assert.strictEqual(unverifiedDebt.unresolved,true);
+const confirmedDebt=assetCase({region:'gyeonggi',homeAsset:100000000,debts:10000000,debtStatus:'verified'});
+assert.strictEqual(confirmedDebt.unresolved,false);
+assert.strictEqual(confirmedDebt.property,104000);
+const unknownCars=assetCase({region:'gyeonggi',carType:'unknown',carValue:10000000});
+assert.strictEqual(unknownCars.unresolved,true);
+
+console.log('Six calculators and 2026 asset/income deduction, vehicle and debt uncertainty regressions validated.');
