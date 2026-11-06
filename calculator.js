@@ -28,15 +28,18 @@ const spec={
 // 인정 부채, 차상위 및 의료급여 별도 특례는 개별 심사로 확정합니다.
 const assetFields=[
  s('region','거주지역',[['','거주지역 선택'],['seoul','서울'],['gyeonggi','경기'],['metro','광역시·세종·창원'],['other','그 외 지역']]),
- s('workerType','근로소득 공제',[['','공제 유형 선택'],['regular','일반 30%'],['disabled','등록장애인 등: 20만원 공제 후 30%'],['young','34세 이하 청년: 60만원 공제 후 30%'],['special','기타 특례 / 공제액 확인 필요']]),
- n('earned','월 근로·사업소득 (원)','가구의 월 근로·사업소득 합계. 특례 대상자가 여러 명이면 간이 추정치가 부정확할 수 있습니다.',1),
+ s('workerType','첫 번째 소득자의 공제 유형',[['','공제 유형 선택'],['regular','일반 근로·사업소득 (30%)'],['disabled','등록장애인·65세 이상 등: 20만원+잔액 30% 공제'],['rehab','장애인 직업재활·정신질환자 직업재활 참여소득: 20만원+잔액 50% 공제'],['young','34세 이하 청년·대학생: 60만원+잔액 30% 공제'],['special','다른 소득공제 특례 또는 잘 모름']]),
+ n('earned','첫 번째 가구원의 월 근로·사업소득 (원)','가구 전체 합계가 아닌 첫 번째 소득자 개인의 월 소득입니다.',1),
+ s('workerType2','두 번째 소득자의 공제 유형',[['none','두 번째 근로소득자 없음'],['regular','일반 근로·사업소득 (30%)'],['disabled','등록장애인·65세 이상 등: 20만원+잔액 30% 공제'],['rehab','장애인 직업재활·정신질환자 직업재활 참여소득: 20만원+잔액 50% 공제'],['young','34세 이하 청년·대학생: 60만원+잔액 30% 공제'],['special','다른 소득공제 특례 또는 잘 모름']]),
+ n('earned2','두 번째 가구원의 월 근로·사업소득 (원)','가구원 2명에게 근로소득이 있으면 개인별 공제를 따로 계산합니다. 없으면 0원.',1),
  n('otherIncome','월 연금·기타 소득 (원)','국민연금 등 소득으로 산입되는 금액만 입력하세요. 장애인연금·한부모 아동양육비 등 법정 제외 소득은 중복 입력하지 마세요.',1),
  n('rentalDeposit','거주 주택 임차보증금 (원)','주거용 임차보증금인 경우 95%를 재산가액으로 평가합니다. 실제 인정 여부는 확인이 필요합니다.',1),
  n('homeAsset','본인 소유 거주주택 재산가액 (원)','직접 거주하는 소유 주택의 조사 기준 가액. 임차보증금과 중복 입력하지 마세요.',1),
  n('generalAsset','기타 일반재산 (원)','토지·건물 등 일반재산 가액',1),
  n('financialAsset','예금·보험 해지환급금 등 금융재산 (원)','예금·적금·보험 해지환급금 합계. 생활준비금 500만원은 자동 공제합니다.',1),
  n('longSavingsDeduction','확인된 장기저축 추가공제액 (원)','장기상품 가입·공제 연차 요건에 따라 인정되는 금액만 입력. 모르면 0을 입력하되 결과는 추가 확인이 필요합니다.',1),
- n('debts','인정 가능한 부채 (원)','담당 기관에서 인정되는 부채에 한합니다.',1),
+ n('debts','인정 가능한 부채 (원)','담당기관이 실제 인정한 대출 원금만 입력하세요. 인정 여부를 모르면 결과를 공식기관에서 확인해야 합니다.',1),
+ s('debtStatus','부채 공제 확인 상태',[['unknown','심사 전·인정 여부 모름'],['verified','인정 가능 부채 금액 확인'],['none','부채 없음']],'부채를 공제할 수 있는지는 용도와 증빙에 따라 달라집니다.'),
  s('carType','자동차 처리 방식',[['','자동차 분류 선택'],['none','자동차 없음 또는 재산에서 제외 확인'],['normal','일반재산 환산 대상 자동차'],['full','월 100% 환산 자동차'],['unknown','자동차 특례 미확인']]),
  n('carValue','자동차 재산가액 (원)','명의·차종·배기량·생업용·장애인사용 여부에 따라 계산 방식이 달라집니다.',1)
 ];
@@ -64,39 +67,49 @@ function pensionEstimate(v){
 
 const REGIONAL_BASE={seoul:99000000,gyeonggi:80000000,metro:77000000,other:53000000};
 const RESIDENTIAL_CAP={seoul:172000000,gyeonggi:151000000,metro:146000000,other:112000000};
+function wageDeduction(amount,type){
+ if(type==='disabled')return Math.min(amount,200000)+Math.max(0,amount-200000)*.30;
+ if(type==='rehab')return Math.min(amount,200000)+Math.max(0,amount-200000)*.50;
+ if(type==='young')return Math.min(amount,600000)+Math.max(0,amount-600000)*.30;
+ return amount*.30;
+}
 function incomeEstimate(v){
- const earned=Number(v.earned||0),other=Number(v.otherIncome||0);
- let deductible=earned*.30;
- if(v.workerType==='disabled')deductible=Math.min(earned,200000)+Math.max(0,earned-200000)*.30;
- if(v.workerType==='young')deductible=Math.min(earned,600000)+Math.max(0,earned-600000)*.30;
- const income=Math.max(0,earned-deductible+other);
+ const earned=Number(v.earned||0),earned2=Number(v.earned2||0),other=Number(v.otherIncome||0);
+ const type=v.workerType||'regular',type2=v.workerType2||'none';
+ const deduction1=wageDeduction(earned,type);
+ const deduction2=type2==='none'?0:wageDeduction(earned2,type2);
+ const deductible=deduction1+deduction2;
+ const income=Math.max(0,earned+earned2-deductible+other);
  const rawDeposit=Number(v.rentalDeposit||0),depositAssessed=Math.round(rawDeposit*.95);
  const rawHome=Number(v.homeAsset||0)+depositAssessed;
  const cap=RESIDENTIAL_CAP[v.region]||RESIDENTIAL_CAP.other;
  const homeCap=Math.min(rawHome,cap);
  const overflow=Math.max(0,rawHome-cap);
- const rawGeneral=Number(v.generalAsset||0)+overflow;
+ const ordinaryCar=v.carType==='normal'?Number(v.carValue||0):0;
+ const fullCar=v.carType==='full'?Number(v.carValue||0):0;
+ // 일반재산 환산 대상 차량도 기본재산액·인정부채 차감 대상인 일반재산과 함께 산정
+ const rawGeneral=Number(v.generalAsset||0)+overflow+ordinaryCar;
  const rawFin=Number(v.financialAsset||0);
- // 장기금융저축 공제는 실제 요건과 누적 적용연도를 확인한 금액만 반영.
  const longDeduction=Math.max(0,Math.min(Number(v.longSavingsDeduction||0),15000000,rawFin));
  const financePrepared=Math.max(0,rawFin-5000000-longDeduction);
- const debt=Number(v.debts||0),car=Number(v.carValue||0);
+ const debt=Number(v.debts||0);
  const base=REGIONAL_BASE[v.region]||REGIONAL_BASE.other;
  let allowance=base;
  let housing=Math.max(0,homeCap-allowance);allowance=Math.max(0,allowance-homeCap);
  let general=Math.max(0,rawGeneral-allowance);allowance=Math.max(0,allowance-rawGeneral);
  let finance=Math.max(0,financePrepared-allowance);
- // 부채는 한도 내 주거용 → 일반 → 금융재산 순으로 간이 차감.
  let leftDebt=debt;
  const subtractDebt=(amount)=>{const deduct=Math.min(amount,leftDebt);leftDebt-=deduct;return amount-deduct;};
  housing=subtractDebt(housing);general=subtractDebt(general);finance=subtractDebt(finance);
- const ordinaryCar=v.carType==='normal'?car:0,fullCar=v.carType==='full'?car:0;
- const property=housing*.0104+(general+ordinaryCar)*.0417+finance*.0626+fullCar;
+ const property=housing*.0104+general*.0417+finance*.0626+fullCar;
+ const unresolved=(debt>0&&v.debtStatus!=='verified')||(type==='special'&&earned>0)||(type2==='special'&&earned2>0)||
+   (type2==='none'&&earned2>0)||(v.carType==='unknown'&&Number(v.carValue||0)>0);
  return {income:Math.round(income),property:Math.round(property),total:Math.round(income+property),
    baseAllowance:base,residentialCap:cap,rentalDepositAssessed:depositAssessed,
    financialPreparationDeduction:Math.min(rawFin,5000000),longSavingsDeduction:longDeduction,
-   incomeDeduction:Math.round(deductible),homeNet:housing,generalNet:general,financeNet:finance,
-   unresolved:v.workerType==='special'||v.carType==='unknown',unusedDebt:leftDebt};
+   incomeDeduction:Math.round(deductible),incomeDeduction1:Math.round(deduction1),incomeDeduction2:Math.round(deduction2),
+   homeNet:housing,generalNet:general,financeNet:finance,ordinaryCar,fullCar,
+   unresolved,unusedDebt:leftDebt};
 }
 
 const el=document.querySelector('#calculator-form'),head=document.querySelector('#calc-heading'),explain=document.querySelector('#calc-explainer'),result=document.querySelector('#calculator-result');
@@ -113,7 +126,7 @@ function buildField(f){
 function select(key){
  chosen=key;const x=spec[key];document.querySelectorAll('.calc-tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.id===key)));
  head.innerHTML='<h2>'+esc(x.title)+'</h2><p class="subtitle">'+esc(x.intro)+'</p>';
- el.innerHTML='<div class="calc-fields">'+x.fields.map(buildField).join('')+'</div>'+(key==='disability'?'<div class="asset-inputs"><h3>장애인연금 소득인정액 자동 추정</h3><p>기초생활보장과 다른 2026년 장애인연금 기준을 적용합니다.</p><div class="calc-fields">'+pensionAssetFields.map(f=>(f.name==='workerSelf'?'<h3 class="form-section-title">① 월 소득</h3>':f.name==='pGeneral'?'<h3 class="form-section-title">② 재산과 부채</h3>':'')+buildField(f)).join('')+'</div></div>':(key==='basic'||key==='single'?'<div class="asset-inputs"><h3>내 소득·재산으로 간이 소득인정액 계산하기</h3><p>입력값은 저장되지 않습니다. 실제 금액이 없는 항목에만 0을 입력하세요. 모르는 금액을 0으로 가정하지 마세요.</p><div class="calc-fields">'+assetFields.map(f=>(f.name==='earned'?'<h3 class="form-section-title">① 월 소득</h3>':f.name==='homeAsset'?'<h3 class="form-section-title">② 주거·일반·금융재산</h3>':f.name==='debts'?'<h3 class="form-section-title">③ 부채·자동차</h3>':'')+buildField(f)).join('')+'</div></div>':''))+'<button class="calc-action" type="submit">'+(key==='basic'?'내 소득인정액과 수급 기준 계산하기 →':'2026년 기준으로 결과 확인 →')+'</button>'; 
+ el.innerHTML='<div class="calc-fields">'+x.fields.map(buildField).join('')+'</div>'+(key==='disability'?'<div class="asset-inputs"><h3>장애인연금 소득인정액 자동 추정</h3><p>기초생활보장과 다른 2026년 장애인연금 기준을 적용합니다.</p><div class="calc-fields">'+pensionAssetFields.map(f=>(f.name==='workerSelf'?'<h3 class="form-section-title">① 월 소득</h3>':f.name==='pGeneral'?'<h3 class="form-section-title">② 재산과 부채</h3>':'')+buildField(f)).join('')+'</div></div>':(key==='basic'||key==='single'?'<div class="asset-inputs"><h3>내 소득·재산으로 간이 소득인정액 계산하기</h3><p>입력값은 저장되지 않습니다. 실제 금액이 없는 항목에만 0을 입력하세요. 모르는 금액을 0으로 가정하지 마세요.</p><div class="calc-fields">'+assetFields.map(f=>(f.name==='earned'?'<h3 class="form-section-title">① 월 소득</h3>':f.name==='rentalDeposit'?'<h3 class="form-section-title">② 주거·일반·금융재산</h3>':f.name==='debts'?'<h3 class="form-section-title">③ 부채·자동차</h3>':'')+buildField(f)).join('')+'</div></div>':''))+'<button class="calc-action" type="submit">'+(key==='basic'?'내 소득인정액과 수급 기준 계산하기 →':'2026년 기준으로 결과 확인 →')+'</button>'; 
  if(key==='basic'||key==='single'||key==='disability'){if(key!=='basic')updateMode();}
  explain.innerHTML='<ul>'+x.description.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><p class="calc-private">공식 자격 확정이나 정부 신청을 대신하지 않습니다.</p>';
  result.hidden=true;
@@ -149,7 +162,9 @@ function calc(key,v){
  }
  if((key==='basic'||key==='single')&&(key==='basic'||v.amountMode==='auto')){
   const estimate=incomeEstimate(v);unresolvedEstimate=estimate.unresolved;v={...v,recognized:String(estimate.total)};
-  rows.push(row('근로소득 공제액',fmt(estimate.incomeDeduction)));
+  rows.push(row('가구원 1 근로소득 공제',fmt(estimate.incomeDeduction1)));
+  rows.push(row('가구원 2 근로소득 공제',fmt(estimate.incomeDeduction2)));
+  rows.push(row('근로소득 공제 합계',fmt(estimate.incomeDeduction)));
   rows.push(row('지역별 기본재산액 공제',fmt(estimate.baseAllowance)));
   rows.push(row('주거용재산 인정 한도',fmt(estimate.residentialCap)));
   rows.push(row('임차보증금 재산평가액(95%)',fmt(estimate.rentalDepositAssessed)));
