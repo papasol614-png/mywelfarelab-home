@@ -10,6 +10,7 @@ assert.strictEqual(Object.keys(spec).length,6);
 for(const k of Object.keys(spec))assert(calc(k,Object.fromEntries(spec[k].fields.map(f=>[f.name,f.type==='select'?f.options[0][0]:'0']))).rows.length>0,k);
 const basic=calc('basic',{persons:'2',recognized:'1300000'});
 assert(basic.rows.some(x=>x.includes('생계급여')));
+assert(basic.rows.some(x=>x.includes('의료급여 전용 소득공제')));
 assert(basic.rows.some(x=>x.includes('소득기준 비교')));
 assert(basic.rows.some(x=>x.includes('생계급여')));
 assert.strictEqual(spec.basic.fields.length,2);
@@ -53,4 +54,26 @@ const money={value:'89600000',selectionStart:8,setSelectionRange(a,b){this.caret
 context.testMoney(money);
 assert.strictEqual(money.value,'89,600,000');
 assert.strictEqual(money.caret,money.value.length);
-console.log('Six calculators, official 2027 rates, result layout and currency formatting validated.');
+
+/* Official 2026 basic asset deduction scenario benchmarks:
+   MOHW: basic deduction 99m/80m/77m/53m;
+   housing cap 172m/151m/146m/112m;
+   rental deposit 95%, monthly housing 1.04%, general 4.17%, finance 6.26%.
+   These test formula parity, NOT actual Bokjiro individualized screen output.
+*/
+const est=context.testIncomeEstimate;
+const core={workerType:'regular',earned:0,otherIncome:0,rentalDeposit:0,homeAsset:0,generalAsset:0,financialAsset:0,longSavingsDeduction:0,debts:0,carType:'none',carValue:0};
+function assetCase(overrides){return est({...core,...overrides});}
+assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:80000000}).property,0);
+assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:100000000}).rentalDepositAssessed,95000000);
+assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:100000000}).property,156000);
+assert.strictEqual(assetCase({region:'seoul',homeAsset:200000000}).property,1926800);
+assert.strictEqual(assetCase({region:'gyeonggi',financialAsset:20000000}).property,0);
+assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000}).property,939000);
+assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,debts:15000000}).property,0);
+assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,longSavingsDeduction:10000000}).property,313000);
+const earnings=assetCase({region:'seoul',earned:1100000,workerType:'disabled'});
+assert.strictEqual(earnings.income,630000);
+assert.strictEqual(earnings.incomeDeduction,470000);
+
+console.log('Six calculators and 9 official 2026 basic asset deduction regression cases validated.');
