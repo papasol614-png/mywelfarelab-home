@@ -1,7 +1,7 @@
 """Real Chromium mobile viewport smoke test for the live source tree."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import json, os
+import json, os, shutil
 
 BASE="http://127.0.0.1:8765/"
 SIZES=[(360,780),(390,844),(430,932),(768,1024)]
@@ -22,7 +22,8 @@ def check_overflow(page, label):
     assert info["doc"] <= info["viewport"]+2, f"Horizontal scrolling on {label}: {info}"
 
 with sync_playwright() as pw:
-    browser=pw.chromium.launch(headless=True,args=["--no-sandbox"])
+    browser_path=shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
+    browser=pw.chromium.launch(headless=True,args=["--no-sandbox"],executable_path=browser_path)
     for width,height in SIZES:
         page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1,is_mobile=width<=430,has_touch=width<=430)
         errors=[]
