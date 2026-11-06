@@ -4,7 +4,7 @@ const nodes={'#calculator-form':dummy(),'#calc-heading':dummy(),'#calc-explainer
 const document={querySelector:s=>nodes[s]||dummy(),querySelectorAll:()=>[]};
 const context={document,location:{hash:''},history:{replaceState(){}},console,Number,String,Math,Array,Object,FormData,alert(){}};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;',context);
+vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;this.testMoney=formatMoneyInput;',context);
 const calc=context.testCalc, spec=context.testSpec;
 assert.strictEqual(Object.keys(spec).length,6);
 for(const k of Object.keys(spec))assert(calc(k,Object.fromEntries(spec[k].fields.map(f=>[f.name,f.type==='select'?f.options[0][0]:'0']))).rows.length>0,k);
@@ -49,4 +49,8 @@ assert(nodes['#calculator-result'].innerHTML.includes('왜 이렇게 나왔나�
 assert(nodes['#calculator-result'].innerHTML.includes('계산 근거와 세부 기준 자세히 보기'));
 assert(nodes['#calculator-result'].innerHTML.includes('실제 지급액')||nodes['#calculator-result'].innerHTML.includes('실제 지급액 아님'));
 assert(nodes['#calculator-result'].innerHTML.includes('수급 확정 판정이 아닙니다'));
-console.log('Six calculators, official 2027 rates and accessible result-first layout validated.');
+const money={value:'89600000',selectionStart:8,setSelectionRange(a,b){this.caret=a;}};
+context.testMoney(money);
+assert.strictEqual(money.value,'89,600,000');
+assert.strictEqual(money.caret,money.value.length);
+console.log('Six calculators, official 2027 rates, result layout and currency formatting validated.');
