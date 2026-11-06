@@ -49,7 +49,8 @@ const childScholarship=calc('scholarship',{segment:'9',childOrder:'multi3',tuiti
 assert.strictEqual(childScholarship.summary.amount,'금액 산정 보류');
 const thirdChildConfirmed=calc('scholarship',{segment:'9',childOrder:'multi3',familyChildren:'yes',tuition:'5000000'});
 assert.strictEqual(thirdChildConfirmed.summary.amount,'2,000,000원');
-assert(childScholarship.rows.some(x=>x.includes('2,000,000')));
+assert(childScholarship.rows.some(x=>x.includes('산정 보류')));
+assert(thirdChildConfirmed.rows.some(x=>x.includes('2,000,000')));
 const grant=calc('work',{household:'one',income:'22000000',gross:'12000000',property:'180000000',children:'1',hasEarned:'yes'});
 assert(grant.rows.some(x=>x.includes('공식 산정표 확인 필요')),grant.rows.join('\\n'));
 assert(!grant.rows.some(x=>x.includes('1,425,000')));
