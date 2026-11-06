@@ -79,6 +79,28 @@ assert.strictEqual(earnings.incomeDeduction,470000);
 const youngAdult=assetCase({region:'seoul',earned:1000000,workerType:'young'});
 assert.strictEqual(youngAdult.income,280000);
 assert.strictEqual(youngAdult.incomeDeduction,720000);
+const approved2026={
+ livelihood:[820556,1343773,1714892,2078316,2418150,2737905],
+ medical:[1025695,1679717,2143614,2597895,3022688,3422381],
+ housing:[1230834,2015660,2572337,3117474,3627225,4106857],
+ education:[1282119,2099646,2679518,3247369,3778360,4277976]
+};
+const approved2027={
+ livelihood:[875533,1433806,1829789,2217563,2580166,2921344],
+ medical:[1094417,1792258,2287236,2771954,3225208,3651680],
+ housing:[1313300,2150710,2744684,3326345,3870249,4382016],
+ education:[1368021,2240323,2859046,3464943,4031510,4564601]
+};
+for (const [year,official] of [['2026',approved2026],['2027',approved2027]]) {
+ for(let persons=1;persons<=6;persons++){
+  const out=calc('basic',{year,persons:String(persons),recognized:'0'});
+  for(const [name,k] of [['생계급여','livelihood'],['의료급여','medical'],['주거급여','housing'],['교육급여','education']]){
+   const expected=official[k][persons-1].toLocaleString('ko-KR')+'원';
+   assert(out.rows.some(x=>x.includes(name+' 선정기준')&&x.includes(expected)),year+' '+name+' '+persons+' '+expected);
+  }
+ }
+}
+
 // MOHW 2026 long-term savings: yearly 5m, total 15m; no retroactive allowance.
 const savingsYear1=assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:25000000,longSavingsDeduction:15000000,longSavingsYears:'1'});
 assert.strictEqual(savingsYear1.longSavingsDeduction,5000000);
