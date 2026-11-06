@@ -38,7 +38,7 @@ const youth=calc('youth',{birthYear:'2000',independent:'yes',homeless:'yes',publ
 assert(youth.rows.some(x=>x.includes('200,000')));
 const work=calc('work',{household:'one',income:'22000000',property:'180000000',children:'1',hasEarned:'yes'});
 assert(work.rows.some(x=>x.includes('50%')));
-const scholarship=calc('scholarship',{segment:'1',tuition:'4200000'});
+const scholarship=calc('scholarship',{segment:'1',childOrder:'normal',familyChildren:'no',tuition:'4200000'});
 assert(scholarship.rows.some(x=>x.includes('4,200,000')));
 
 const est=context.testIncomeEstimate({region:'gyeonggi',workerType:'disabled',earned:1100000,otherIncome:460000,homeAsset:80000000,generalAsset:0,financialAsset:9000000,debts:25000000,carType:'none',carValue:0});
