@@ -1,0 +1,34 @@
+name: Mobile UX browser checks
+on:
+  push:
+    paths:
+      - '*.html'
+      - '*.css'
+      - 'calculator.js'
+      - 'app.js'
+      - 'tests/mobile_smoke.py'
+      - '.github/workflows/mobile_ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser test requirements
+        run: |
+          python3 -m pip install --user playwright
+          python3 -m playwright install --with-deps chromium
+      - name: Test mobile pages in Chromium
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/mobile-local-http.log 2>&1 &
+          python3 tests/mobile_smoke.py
+      - name: Upload mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-viewport-screenshots
+          path: mobile-artifacts/
+          if-no-files-found: ignore
