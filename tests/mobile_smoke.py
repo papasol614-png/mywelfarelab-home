@@ -48,6 +48,9 @@ def test_topic(page,topic,width):
     if topic=="basic":
         page.locator('select[name="year"]').select_option("2027")
         page.locator('select[name="persons"]').select_option("2")
+        page.locator('select[name="region"]').select_option("gyeonggi")
+        page.locator('select[name="workerType"]').select_option("disabled")
+        page.locator('select[name="carType"]').select_option("none")
         page.locator('input[name="earned"]').fill("1100000")
         assert page.locator('input[name="earned"]').input_value()=="1,100,000"
         fill_money_inputs(page)
