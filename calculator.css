@@ -64,3 +64,11 @@ html,body{max-width:100%}
   .calc-footer{padding:14px 5px;justify-content:flex-start;gap:14px}
 }
 @media(max-width:375px){.calc-chooser{grid-template-columns:repeat(2,minmax(0,1fr))}.calc-tab{font-size:12px}.calc-intro h1{font-size:27px}.outcome-panel{padding:15px}.outcome-panel strong{font-size:19px}}
+
+/* Reduce above-the-fold reading before choosing a calculator */
+.calc-notice{margin-top:13px;border:1px solid #dce5fa;border-radius:12px;background:#ffffffb9;color:#536782}
+.calc-notice summary{cursor:pointer;padding:11px 14px;min-height:42px;display:flex;align-items:center;font-weight:800;line-height:1.5}
+.calc-notice[open] summary{border-bottom:1px solid #e3e9f5}
+.calc-notice p{margin:0;padding:12px 14px;font-size:12px;line-height:1.7;color:#526380}
+.calc-field select,.calc-field select option,.calc-field input{font-family:'Noto Sans KR',system-ui,sans-serif}
+@media(max-width:750px){.calc-intro{padding:18px 16px}.calc-intro h1{margin:12px 0;font-size:28px}.calc-intro p{margin-bottom:8px}.calc-intro .calc-notice{font-size:12px;padding:0;margin-top:11px}.calc-intro .calc-notice summary{font-size:12px}.calc-intro .calc-notice p{font-size:12px;padding:12px}.calc-eyebrow{font-size:10px}.calc-field small{font-size:12px;line-height:1.55}}
