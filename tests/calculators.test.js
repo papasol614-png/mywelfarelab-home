@@ -71,7 +71,7 @@ assert.strictEqual(assetCase({region:'seoul',homeAsset:200000000}).property,1926
 assert.strictEqual(assetCase({region:'gyeonggi',financialAsset:20000000}).property,0);
 assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000}).property,939000);
 assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,debts:15000000}).property,0);
-assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,longSavingsDeduction:10000000}).property,313000);
+assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,longSavingsDeduction:10000000,longSavingsYears:'2'}).property,313000);
 const earnings=assetCase({region:'seoul',earned:1100000,workerType:'disabled'});
 assert.strictEqual(earnings.income,630000);
 assert.strictEqual(earnings.incomeDeduction,470000);
@@ -79,6 +79,15 @@ assert.strictEqual(earnings.incomeDeduction,470000);
 const youngAdult=assetCase({region:'seoul',earned:1000000,workerType:'young'});
 assert.strictEqual(youngAdult.income,280000);
 assert.strictEqual(youngAdult.incomeDeduction,720000);
+// MOHW 2026 long-term savings: yearly 5m, total 15m; no retroactive allowance.
+const savingsYear1=assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:25000000,longSavingsDeduction:15000000,longSavingsYears:'1'});
+assert.strictEqual(savingsYear1.longSavingsDeduction,5000000);
+assert.strictEqual(savingsYear1.unresolved,true);
+const savingsYear3=assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:25000000,longSavingsDeduction:15000000,longSavingsYears:'3'});
+assert.strictEqual(savingsYear3.longSavingsDeduction,15000000);
+assert.strictEqual(savingsYear3.unresolved,false);
+const thirdEarner=assetCase({region:'gyeonggi',extraWageEarners:'yes'});
+assert.strictEqual(thirdEarner.unresolved,true);
 
 
 /* Cross-check high-risk deduction and asset classification boundaries. */
