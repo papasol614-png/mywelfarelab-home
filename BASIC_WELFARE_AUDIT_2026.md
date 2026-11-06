@@ -33,6 +33,7 @@
 | F | E + 인정부채 1,500만원 | 0원 | 남은 금융 환산대상 1,500만원과 인정부채 상계 |
 | G | E + 확인된 장기저축 추가공제 1,000만원 | 313,000원 | (2,000만−500만−1,000만) ×6.26% |
 | H | 서울 등록장애인 근로소득 110만원, 그 외 소득·재산 없음 | 소득평가액 630,000원 | 20만원 공제 후 잔액 30% 추가공제 |
+| I | 30세 청년 근로소득 100만원, 그 외 소득·재산 없음 | 소득평가액 280,000원 | **전주시가 게시한 2026년 보건복지부 공식 개정 예시와 일치**: 60만원 공제 후 잔액 30% 공제 |
 - 위 숫자는 **시험용 가상 사례**이며 실제 개인 수급액이나 복지로 실시간 결과가 아님
 - 코드 회귀 검증: tests/calculators.test.js (GitHub Actions)
 
@@ -47,6 +48,7 @@
 
 ## 공식 대조 출처
 - https://www.mohw.go.kr/menu.es?mid=a10708010300
+- https://jeonju.go.kr/planweb/board/view.9is?boardUid=ff8080818bad9295018bae4a96ac09b2&contentUid=ff8080818990c349018b041a9b223a47&dataUid=9be517a89b212afa019c17e5e44b0a0b&page=6
 - https://www.bokjiro.go.kr/ssis-tbu/twatbz/mkclAsis/mkclPage.do
 - https://plus.gov.kr/
 - https://www.haeundae.go.kr/board/view.do?boardId=BBS_0000038&dataSid=3159667&menuCd=DOM_000000101005017002&paging=ok&startPage=1
