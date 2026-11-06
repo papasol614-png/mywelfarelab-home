@@ -75,5 +75,9 @@ assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsse
 const earnings=assetCase({region:'seoul',earned:1100000,workerType:'disabled'});
 assert.strictEqual(earnings.income,630000);
 assert.strictEqual(earnings.incomeDeduction,470000);
+// 2026 official MOHW revision worked example: 30-year-old earning 1m/month => assessed income 280,000 KRW after 600k + 30% deduction.
+const youngAdult=assetCase({region:'seoul',earned:1000000,workerType:'young'});
+assert.strictEqual(youngAdult.income,280000);
+assert.strictEqual(youngAdult.incomeDeduction,720000);
 
 console.log('Six calculators and 9 official 2026 basic asset deduction regression cases validated.');
