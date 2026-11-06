@@ -30,6 +30,7 @@ def audit(page,label):
     REPORT.append({"screen":label,**info})
     print(label+" "+json.dumps(info,ensure_ascii=False),flush=True)
     assert info["doc"]<=info["viewport"]+2, f"Horizontal overflow: {label}: {info}"
+    assert not info["smallestTap"], f"Touch control smaller than 40 px: {label}: {info[\'smallestTap\']}"
     return info
 
 def fill_money_inputs(page):
