@@ -32,12 +32,14 @@ const assetFields=[
  n('earned','첫 번째 가구원의 월 근로·사업소득 (원)','가구 전체 합계가 아닌 첫 번째 소득자 개인의 월 소득입니다.',1),
  s('workerType2','두 번째 소득자의 공제 유형',[['none','두 번째 근로소득자 없음'],['regular','일반 근로·사업소득 (30%)'],['disabled','등록장애인·65세 이상 등: 20만원+잔액 30% 공제'],['rehab','장애인 직업재활·정신질환자 직업재활 참여소득: 20만원+잔액 50% 공제'],['young','34세 이하 청년·대학생: 60만원+잔액 30% 공제'],['special','다른 소득공제 특례 또는 잘 모름']]),
  n('earned2','두 번째 가구원의 월 근로·사업소득 (원)','가구원 2명에게 근로소득이 있으면 개인별 공제를 따로 계산합니다. 없으면 0원.',1),
+ s('extraWageEarners','근로·사업소득이 있는 가구원이 더 있나요?',[['no','아니요 (최대 두 명)'],['yes','예 (세 명 이상 · 정확한 개별 계산 별도 확인 필요)']]),
  n('otherIncome','월 연금·기타 소득 (원)','국민연금 등 소득으로 산입되는 금액만 입력하세요. 장애인연금·한부모 아동양육비 등 법정 제외 소득은 중복 입력하지 마세요.',1),
  n('rentalDeposit','거주 주택 임차보증금 (원)','주거용 임차보증금인 경우 95%를 재산가액으로 평가합니다. 실제 인정 여부는 확인이 필요합니다.',1),
  n('homeAsset','본인 소유 거주주택 재산가액 (원)','직접 거주하는 소유 주택의 조사 기준 가액. 임차보증금과 중복 입력하지 마세요.',1),
  n('generalAsset','기타 일반재산 (원)','토지·건물 등 일반재산 가액',1),
  n('financialAsset','예금·보험 해지환급금 등 금융재산 (원)','예금·적금·보험 해지환급금 합계. 생활준비금 500만원은 자동 공제합니다.',1),
- n('longSavingsDeduction','확인된 장기저축 추가공제액 (원)','장기상품 가입·공제 연차 요건에 따라 인정되는 금액만 입력. 모르면 0을 입력하되 결과는 추가 확인이 필요합니다.',1),
+ s('longSavingsYears','장기저축 공제 적용 연차',[['0','공제 없음 · 인정 전'],['1','공제 적용 첫해'],['2','공제 적용 둘째해'],['3','공제 적용 3년차 이상']],'3년 이상 가입상품이라도 공제 적용 첫해에는 연간 최대 500만원입니다.'),
+ n('longSavingsDeduction','장기저축 공제 신청금액 (원)','현재까지 인정받을 수 있는 누적 공제금액을 입력하세요. 연차에 따라 연 500만원, 총 1,500만원 상한이 자동 적용됩니다.',1),
  n('debts','인정 가능한 부채 (원)','담당기관이 실제 인정한 대출 원금만 입력하세요. 인정 여부를 모르면 결과를 공식기관에서 확인해야 합니다.',1),
  s('debtStatus','부채 공제 확인 상태',[['unknown','심사 전·인정 여부 모름'],['verified','인정 가능 부채 금액 확인'],['none','부채 없음']],'부채를 공제할 수 있는지는 용도와 증빙에 따라 달라집니다.'),
  s('carType','자동차 처리 방식',[['','자동차 분류 선택'],['none','자동차 없음 또는 재산에서 제외 확인'],['normal','일반재산 환산 대상 자동차'],['full','월 100% 환산 자동차'],['unknown','자동차 특례 미확인']]),
@@ -90,7 +92,9 @@ function incomeEstimate(v){
  // 일반재산 환산 대상 차량도 기본재산액·인정부채 차감 대상인 일반재산과 함께 산정
  const rawGeneral=Number(v.generalAsset||0)+overflow+ordinaryCar;
  const rawFin=Number(v.financialAsset||0);
- const longDeduction=Math.max(0,Math.min(Number(v.longSavingsDeduction||0),15000000,rawFin));
+ const savingsYears=Math.min(3,Math.max(0,Number(v.longSavingsYears||0)));
+ const requestedSavings=Math.max(0,Number(v.longSavingsDeduction||0));
+ const longDeduction=Math.min(requestedSavings,savingsYears*5000000,15000000,rawFin);
  const financePrepared=Math.max(0,rawFin-5000000-longDeduction);
  const debt=Number(v.debts||0);
  const base=REGIONAL_BASE[v.region]||REGIONAL_BASE.other;
@@ -102,11 +106,11 @@ function incomeEstimate(v){
  const subtractDebt=(amount)=>{const deduct=Math.min(amount,leftDebt);leftDebt-=deduct;return amount-deduct;};
  housing=subtractDebt(housing);general=subtractDebt(general);finance=subtractDebt(finance);
  const property=housing*.0104+general*.0417+finance*.0626+fullCar;
- const unresolved=(debt>0&&v.debtStatus!=='verified')||(type==='special'&&earned>0)||(type2==='special'&&earned2>0)||
+ const unresolved=(v.extraWageEarners==='yes')||(requestedSavings>longDeduction)||(debt>0&&v.debtStatus!=='verified')||(type==='special'&&earned>0)||(type2==='special'&&earned2>0)||
    (type2==='none'&&earned2>0)||(v.carType==='unknown'&&Number(v.carValue||0)>0);
  return {income:Math.round(income),property:Math.round(property),total:Math.round(income+property),
    baseAllowance:base,residentialCap:cap,rentalDepositAssessed:depositAssessed,
-   financialPreparationDeduction:Math.min(rawFin,5000000),longSavingsDeduction:longDeduction,
+   financialPreparationDeduction:Math.min(rawFin,5000000),longSavingsDeduction:longDeduction,requestedSavingsDeduction:requestedSavings,savingsYears,
    incomeDeduction:Math.round(deductible),incomeDeduction1:Math.round(deduction1),incomeDeduction2:Math.round(deduction2),
    homeNet:housing,generalNet:general,financeNet:finance,ordinaryCar,fullCar,
    unresolved,unusedDebt:leftDebt};
@@ -169,13 +173,15 @@ function calc(key,v){
   rows.push(row('주거용재산 인정 한도',fmt(estimate.residentialCap)));
   rows.push(row('임차보증금 재산평가액(95%)',fmt(estimate.rentalDepositAssessed)));
   rows.push(row('금융재산 생활준비금 공제',fmt(estimate.financialPreparationDeduction)));
-  rows.push(row('확인된 장기저축 공제 적용액',fmt(estimate.longSavingsDeduction)));
+  rows.push(row('장기저축 공제 연차',estimate.savingsYears+'년차 (0은 미적용)'));
+  rows.push(row('장기저축 공제 적용액',fmt(estimate.longSavingsDeduction)));
   rows.push(row('간이 소득평가액',fmt(estimate.income)));
   rows.push(row('간이 재산 월 소득환산액',fmt(estimate.property)));
   rows.push(row('간이 월 소득인정액 합계',fmt(estimate.total)));
   note.push('이 금액은 간이 추정치이며 금융재산 생활준비금 500만원 공제를 반영했습니다. 가구 특례·부채 인정 여부·장기저축 공제요건 및 자동차 특례 등의 정확한 심사가 필요합니다. 실제 소득인정액과 다를 수 있습니다.');
   if(key==='basic'&&v.year==='2027')note.push('2027년 선정기준은 공식 확정 자료이지만, 재산·소득 공제 규정은 현재 확인된 2026년 산식을 사용합니다. 2027년 제도별 세부 공제 규정이 달라질 경우 재계산이 필요합니다.');
-  if(estimate.unresolved)note.push('선택한 소득공제 또는 자동차의 특례 기준이 미확인 상태입니다. 계산값을 수급 가능성 판정에 사용하지 마세요.');
+  if(estimate.requestedSavingsDeduction>estimate.longSavingsDeduction)note.push('장기저축 공제 신청금액이 적용 연차·금융재산 한도보다 큽니다. 계산기는 공제 가능 상한을 초과해 적용하지 않았으며 공식 조사에서 공제 인정액을 확인해야 합니다.');
+  if(estimate.unresolved)note.push('근로소득자 인원·장기저축 인정액·부채·자동차·특례 중 확인이 필요한 조건이 있어 수급 가능성과 지급액을 판정하지 않습니다.');
  }
 
  if(key==='basic'){
@@ -255,7 +261,7 @@ function calc(key,v){
    summary={tone:amount===0?'not':'review',status:amount===0?'해당 지원구간 기본 상한 없음':'지원구간별 상한 확인',amount:fmt(capped),unit:'연간 등록금 기준 지원상한 · 실지급액 아님',detail:'한국장학재단의 학자금 지원구간·학적·성적·중복지원 심사를 거쳐 결정됩니다.',reasons:['입력 등록금: '+fmt(+v.tuition),'등록금 범위 내에서만 지원','다자녀 여부에 따라 상한 차이']};
  }
  if(unresolvedEstimate){
-    summary={...summary,tone:'review',status:'특례 확인 전 판정 불가',amount:'금액 산정 보류',unit:'자동차·근로소득 특례 등을 확인하세요',detail:'선택한 조건에는 적용 방식이 불확실한 특례가 있어 소득기준 비교만으로 수급 가능성을 판단할 수 없습니다.',reasons:[...summary.reasons,'자동차 및 근로소득 특례 여부를 담당 기관에 확인하세요']};
+    summary={...summary,tone:'review',status:'특례 확인 전 판정 불가',amount:'금액 산정 보류',unit:'자동차·근로소득 특례 등을 확인하세요',detail:'입력한 소득자 수, 장기저축 공제, 부채 또는 자동차에 미확인 조건이 있어 수급 가능성과 지급액을 판정할 수 없습니다.',reasons:[...summary.reasons,'근로소득자 수와 공제, 인정부채 및 자동차 분류를 담당 기관에 확인하세요']};
  }
  return {rows,note,summary};
 }
