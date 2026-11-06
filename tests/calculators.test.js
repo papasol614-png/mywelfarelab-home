@@ -61,9 +61,9 @@ assert.strictEqual(money.caret,money.value.length);
    rental deposit 95%, monthly housing 1.04%, general 4.17%, finance 6.26%.
    These test formula parity, NOT actual Bokjiro individualized screen output.
 */
-const est=context.testIncomeEstimate;
+const estimateAsset=context.testIncomeEstimate;
 const core={workerType:'regular',earned:0,otherIncome:0,rentalDeposit:0,homeAsset:0,generalAsset:0,financialAsset:0,longSavingsDeduction:0,debts:0,carType:'none',carValue:0};
-function assetCase(overrides){return est({...core,...overrides});}
+function assetCase(overrides){return estimateAsset({...core,...overrides});}
 assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:80000000}).property,0);
 assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:100000000}).rentalDepositAssessed,95000000);
 assert.strictEqual(assetCase({region:'gyeonggi',rentalDeposit:100000000}).property,156000);
