@@ -112,7 +112,7 @@ function formatMoneyInput(input){
  const before=input.selectionStart??input.value.length;
  const digitsBefore=input.value.slice(0,before).replace(/[^0-9]/g,'').length;
  const digits=input.value.replace(/[^0-9]/g,'');
- const formatted=digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');
+ const formatted=digits.replace(/\B(?=(\d{3})+(?!\d))/g,',');
  input.value=formatted;
  let caret=0,seen=0;
  while(caret<formatted.length&&seen<digitsBefore){if(/[0-9]/.test(formatted[caret]))seen++;caret++;}
@@ -124,7 +124,7 @@ const row=(name,value,status='')=>'<tr><td>'+esc(name)+'</td><td class="'+status
 const table=rows=>'<table class="calc-table"><thead><tr><th>확인 항목</th><th>결과</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
 const yes=(b)=>b?'기준 이내 — 추가 심사 필요':'기준 초과 또는 요건 불충족';
 function calc(key,v){
- const warn=[],rows=[],note=[];
+ const warn=[],rows=[],note=[];let summary={tone:'review',status:'추가 확인 필요',amount:'금액 확인 필요',unit:'',detail:'현재 입력 정보만으로 실제 지급액을 확정할 수 없습니다.',reasons:[]};
  if(key==='disability'&&v.amountMode==='auto'){
   const e=pensionEstimate(v);v={...v,recognized:String(e.total)};
   rows.push(row('장애인연금 월 소득평가액 추정',fmt(e.income)));
@@ -153,6 +153,9 @@ function calc(key,v){
    rows.push(row('차상위계층 소득기준 (50%)',fmt(Math.round(m*.5))+' /월'));
    rows.push(row('차상위계층 소득기준 비교',a<=Math.round(m*.5)?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과'));
    note.push('소득인정액은 간이 계산값입니다. 재산 인정·공제·부채·자동차 특례·가구 특성에 따른 조정 전후로 실제 결과가 달라질 수 있습니다. 기준 이내라도 수급이 확정되는 것은 아닙니다.');
+   const matched=[['생계급여',.32],['의료급여',.4],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=Math.round(m*p)).map(([name])=>name);
+   const livingGap=Math.max(0,Math.round(m*.32)-a);
+   summary={tone:matched.length?'review':'not',status:matched.length?'선정 소득기준 해당 가능':'입력한 조건에서는 소득기준 초과',amount:matched.length&&livingGap>0?fmt(livingGap):'지급액 확인 필요',unit:livingGap>0?'생계급여 기준액과의 차액 · 월 (실제 지급액 아님)':'정확한 지급액은 기관 심사 후 확인',detail:matched.length?'기준 이내 항목: '+matched.join(' · '):'현재 간이 소득인정액이 네 가지 급여의 선정기준을 초과합니다.',reasons:['간이 월 소득인정액: '+fmt(a),'가구원 수: '+h+'명','재산·부채·공제의 실제 인정액은 조사에 따라 변동']};
  }else if(key==='disability'){
    const threshold=v.couple==='yes'?2240000:1400000; const ok=+v.age>=18&&v.severity==='yes'&&+v.recognized<=threshold;
    rows.push(row('2026년 선정기준',fmt(threshold)+' /월'));
@@ -161,6 +164,7 @@ function calc(key,v){
    rows.push(row('소득인정액',yes(+v.recognized<=threshold),+v.recognized<=threshold?'tag-ok':'tag-no'));
    rows.push(row('종합 사전 점검',ok?'주요 조건 충족 가능':'추가 확인 또는 기준 불충족',ok?'tag-ok':'tag-check'));
    note.push('2026년 월 기초급여 최고 349,700원이며 실제 수급액·부가급여는 별도 심사 결과에 따릅니다.');
+   summary={tone:ok?'review':'not',status:ok?'주요 조건 충족 가능':'연령·장애 정도·소득 중 확인 필요',amount:(+v.age>=18&&+v.age<65&&v.severity==='yes')?'최대 349,700원':'금액 확인 필요',unit:'2026년 기초급여 월 상한 · 개인별 실제액 아님',detail:'65세 이상은 기초급여 대신 기초연금 등 별도 제도를 확인해야 합니다.',reasons:['월 선정기준: '+fmt(threshold),'연령·중증장애 등록·직역연금 특례 별도 확인']};
  }else if(key==='single'){
    const median=MEDIAN[+v.persons],youth=+v.parentAge<=24,cert= Math.round(median*(youth?.72:.65)),benefit=Math.round(median*.65);
    rows.push(row('한부모 증명서 소득기준',fmt(cert)+' /월'));
@@ -169,6 +173,9 @@ function calc(key,v){
    rows.push(row('복지급여 소득기준 비교',yes(+v.recognized<=benefit),+v.recognized<=benefit?'tag-ok':'tag-no'));
    rows.push(row('자녀 연령 참고',+v.childAge<18?'기본 연령요건 가능':'재학·급여 종류별 추가 확인'));
    note.push('일반 한부모 아동양육비의 2026년 기본 지원액은 자녀 1명당 월 23만원이나, 실제 지급은 급여 종류 및 자녀 요건에 따릅니다.');
+   const within=+v.recognized<=benefit,young=+v.parentAge<=24;
+   const monthly=young?(+v.childAge<=1?400000:370000):230000;
+   summary={tone:within?'review':'not',status:within?'소득기준 해당 가능':'현재 입력상 소득기준 초과',amount:within&&+v.childAge<18?fmt(monthly):'금액 확인 필요',unit:'자녀 1명당 월 기본지원액 기준 · 확정액 아님',detail:'실제 지원은 자녀 수·연령·재학·중복 지원과 가족관계 심사가 필요합니다.',reasons:['가구 소득기준: '+fmt(benefit),'입력 소득인정액: '+fmt(+v.recognized)]};
  }else if(key==='youth'){
    const ageok=+v.birthYear>=1991&&+v.birthYear<=2007, home=v.homeless==='yes'&&v.independent==='yes'&&v.publicLease==='no';
    const incomeOk=+v.youngIncome<=Math.round(MEDIAN[+v.youngPersons]*.6);
@@ -180,6 +187,8 @@ function calc(key,v){
    rows.push(row('원가구 소득·재산',v.exempt==='yes'?'심사 면제 해당 여부 공식 확인':yes(origOk),origOk?'tag-ok':'tag-no'));
    rows.push(row('실제 월세 기준 지원상한',fmt(Math.min(+v.rent,200000))+' /월'));
    note.push('2026년 신규 신청기간은 종료됐습니다. 위 결과는 2026년 공고에 대한 가상 사전 점검이며 현재 신청 가능하다는 뜻이 아닙니다.');
+   const prelim=ageok&&home&&incomeOk&&propOk&&origOk;
+   summary={tone:prelim?'review':'not',status:prelim?'주요 요건 해당 가능':'일부 주요 요건 불충족',amount:prelim?fmt(Math.min(+v.rent,200000)):'금액 확인 필요',unit:'월세 지원상한 · 실제 지급액 아님',detail:'신청 기간과 공고별 제외 조건을 반드시 확인해야 합니다.',reasons:['부모 별거·무주택·소득·재산 요건 검토','기존 수혜·중복지원 및 신청 시기 별도 확인']};
  }else if(key==='work'){
    const limits={single:22000000,one:32000000,both:44000000},max={single:1650000,one:2850000,both:3300000};
    const income=+v.income,asset=+v.property,gross=+v.gross||0,eligible=v.hasEarned==='yes'&&income<limits[v.household]&&asset<240000000;
@@ -194,13 +203,14 @@ function calc(key,v){
      else approximate=max[v.household]*Math.max(0,config[2]-gross)/(config[2]-config[1]);
      if(asset>=170000000)approximate*=.5;
    }
-   rows.push(row('총급여액 등 기준 단순 추정',eligible&&gross>0?fmt(Math.round(approximate/1000)*1000)+' (공식 지급액 아님)':'산정 대상 여부·총급여액 등 확인 필요'));
-   note.push('단순 추정치는 국세청 지급구간을 선형으로 보간한 참고값입니다. 공식 산정표·감액·반기 지급·체납 등의 적용 결과와 다를 수 있습니다.');
+   rows.push(row('실제 지급액', '국세청 공식 산정표 확인 필요'));
+   note.push('기존 단순 보간 예상액은 공식 산정표와 다를 수 있어 공개 결과에서 제외했습니다. 실제 금액은 국세청 홈택스에서 확인하세요.');
    const child=v.household!=='single'&&+v.children>0&&income<70000000&&asset<240000000&&v.hasEarned==='yes';
    rows.push(row('자녀장려금 주요 조건',+v.children===0?'부양자녀 없음':yes(child),child?'tag-ok':'tag-check'));
    rows.push(row('자녀장려금 자녀별 최고액',child?fmt(1000000)+' × '+v.children+'명 (상한 참고)':'해당 조건 추가 확인'));
    rows.push(row('재산 1.7억~2.4억',asset>=170000000&&asset<240000000?'장려금 산정액 50% 적용':'해당 없음'));
    note.push('총소득 기준으로 자격만 확인했습니다. 실제 장려금은 총급여액 등 산정표에 따라 달라집니다. 세법개정안 확대 기준은 적용하지 않았습니다.');
+   summary={tone:eligible?'review':'not',status:eligible?'근로장려금 기본 소득·재산 요건 해당 가능':'근로장려금 기본 요건 불충족',amount:eligible?'최대 '+fmt(max[v.household]):'금액 확인 필요',unit:'가구 유형별 법정 최고액 · 실제 예상액 아님',detail:'총급여액 등 공식 산정표 및 추가 요건에 따라 지급액이 달라집니다.',reasons:['총소득: '+fmt(income),'가구 재산: '+fmt(asset),'자녀장려금은 별도 부양자녀 조건 확인']};
  }else if(key==='scholarship'){
    const seg=v.segment;let amount=seg==='basic'?Infinity:[0,6000000,6000000,6000000,4400000,4400000,4400000,3600000,3600000,1000000,0][+seg];
    if(v.childOrder==='multi12')amount=seg==='basic'?Infinity:[0,6100000,6100000,6100000,5050000,5050000,5050000,4650000,4650000,1350000,0][+seg];
@@ -209,12 +219,17 @@ function calc(key,v){
    rows.push(row(v.childOrder==='normal'?'국가장학금 I유형 연간 상한':'다자녀 국가장학금 연간 상한',amount===Infinity?'등록금 전액':fmt(amount)));
    rows.push(row('입력 등록금 기준 예상 상한',fmt(Math.min(amount,+v.tuition))+' (상한 참고)'));
    note.push('실제 국가장학금 지급액은 학기별 신청·성적·중복지원·학교 및 개인 자격 심사에 따라 달라집니다.');
+   const capped=Math.min(amount,+v.tuition);
+   summary={tone:amount===0?'not':'review',status:amount===0?'해당 지원구간 기본 상한 없음':'지원구간별 상한 확인',amount:fmt(capped),unit:'연간 등록금 기준 지원상한 · 실지급액 아님',detail:'한국장학재단의 학자금 지원구간·학적·성적·중복지원 심사를 거쳐 결정됩니다.',reasons:['입력 등록금: '+fmt(+v.tuition),'등록금 범위 내에서만 지원','다자녀 여부에 따라 상한 차이']};
  }
- return {rows,note};
+ return {rows,note,summary};
 }
 function render(key,v){
- const x=spec[key],r=calc(key,v),links=(source[key]||[]).map(([name,url])=>'<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(name)+' ↗</a>').join('');
- result.innerHTML='<div class="result-hero"><strong>'+esc(x.title)+' 결과</strong><span>'+(key==='basic'?'입력한 소득·재산으로 간이 추정한 소득인정액과 2026년 선정기준을 비교했습니다. 수급 확정 판정은 아닙니다.':'2026년 공식 기준으로 입력한 값을 비교했습니다. 이 결과는 확정 판정이 아닙니다.')+'</span></div>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>반드시 알아두세요</h3><p>'+esc(x.caveat)+'</p><div class="source-links">'+links+'</div><button type="button" class="calc-action" id="calcAgain">다른 조건으로 다시 확인하기</button>';
+ const x=spec[key],r=calc(key,v),info=r.summary;
+ const reasons=info.reasons.map(x=>'<li>'+esc(x)+'</li>').join('');
+ const links=(source[key]||[]).map(([name,url])=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(name)+' ↗</a>').join('');
+ const sectionCards= key==='basic' ? '<div class="outcome-grid">'+['생계급여','의료급여','주거급여','교육급여'].map(name=>{const found=r.rows.find((v,i)=>v.includes(name+' 소득기준 비교'));const hit=found&&found.includes('기준 이내');return '<div class="outcome-mini"><b>'+name+'</b><strong class="'+(hit?'text-review':'text-not')+'">'+(hit?'소득기준 해당 가능':'소득기준 초과')+'</strong><small>추가 심사 필요</small></div>'}).join('')+'</div>' : '';
+ result.innerHTML='<div class="outcome-top"><p class="outcome-kicker">내 복지 결과 · 2026년 사전 점검</p><h2>'+esc(x.title)+'</h2><div class="outcome-grid outcome-main"><div class="outcome-panel outcome-'+esc(info.tone)+'"><span>대상 가능성</span><strong>'+esc(info.status)+'</strong><small>'+esc(info.detail)+'</small></div><div class="outcome-panel"><span>확인 가능한 금액</span><strong>'+esc(info.amount)+'</strong><small>'+esc(info.unit)+'</small></div></div>'+sectionCards+'</div><section class="outcome-next"><h3>왜 이렇게 나왔나요?</h3><ul>'+reasons+'</ul><p class="result-note">수급 확정 판정이 아닙니다. 제도별 공제·특례·신청시기와 담당기관 심사를 확인해야 합니다.</p></section><section class="outcome-actions"><h3>다음 단계</h3><div class="source-links">'+links+'</div><a class="result-cafe" href="https://cafe.naver.com/mywelfarelab" target="_blank" rel="noopener noreferrer">카페에서 신청·서류 질문하기 ↗</a></section><details class="outcome-details"><summary>계산 근거와 세부 기준 자세히 보기</summary>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>적용 범위와 주의사항</h3><p>'+esc(x.caveat)+'</p></details><button type="button" class="calc-action" id="calcAgain">입력값 수정해서 다시 계산 →</button>';
  result.hidden=false;result.focus({preventScroll:true});result.scrollIntoView({behavior:'smooth',block:'start'});
 }
 el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}for(const f of [...spec[chosen].fields,...((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
