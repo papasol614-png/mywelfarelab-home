@@ -272,8 +272,9 @@ function calc(key,v){
    if(v.childOrder==='multi12')amount=seg==='basic'?Infinity:[0,6100000,6100000,6100000,5050000,5050000,5050000,4650000,4650000,1350000,0][+seg];
    if(v.childOrder==='multi3')amount=seg==='basic'||(Number(seg)>=1&&Number(seg)<=8)?Infinity:(seg==='9'?2000000:0);
    rows.push(row('2026년 지원구간',seg==='basic'?'기초·차상위':seg+'구간'));
-   rows.push(row(v.childOrder==='normal'?'국가장학금 I유형 연간 상한':'다자녀 국가장학금 연간 상한',amount===Infinity?'등록금 전액':fmt(amount)));
-   rows.push(row('입력 등록금 기준 예상 상한',fmt(Math.min(amount,+v.tuition))+' (상한 참고)'));
+   const multiUnchecked=v.childOrder!=='normal'&&v.familyChildren!=='yes';
+   rows.push(row(v.childOrder==='normal'?'국가장학금 I유형 연간 상한':'다자녀 국가장학금 연간 상한',multiUnchecked?'다자녀 가구 자격 확인 필요':amount===Infinity?'등록금 전액':fmt(amount)));
+   rows.push(row('입력 등록금 기준 예상 상한',multiUnchecked?'산정 보류':fmt(Math.min(amount,+v.tuition))+' (상한 참고)'));
    note.push('실제 국가장학금 지급액은 학기별 신청·성적·중복지원·학교 및 개인 자격 심사에 따라 달라집니다.');
    const capped=Math.min(amount,+v.tuition);
    summary={tone:amount===0?'not':'review',status:amount===0?'해당 지원구간 기본 상한 없음':'지원구간별 상한 확인',amount:fmt(capped),unit:'연간 등록금 기준 지원상한 · 실지급액 아님',detail:'한국장학재단의 학자금 지원구간·학적·성적·중복지원 심사를 거쳐 결정됩니다.',reasons:['입력 등록금: '+fmt(+v.tuition),'등록금 범위 내에서만 지원','다자녀 여부에 따라 상한 차이']};
