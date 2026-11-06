@@ -171,14 +171,16 @@ function calc(key,v){
    for(const [name,ratio] of [['생계급여',.32],['의료급여',.40],['주거급여',.48],['교육급여',.50]]){
      const limit=Math.round(m*ratio),matches=a<=limit;
      rows.push(row(name+' 선정기준 ('+(ratio*100)+'%)',fmt(limit)+' /월'));
-     rows.push(row(name+' 소득기준 비교',matches?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과',matches?'tag-ok':'tag-no'));
+     if(name==='의료급여') rows.push(row(name+' 소득기준 비교','의료급여 전용 소득공제·부양의무자 기준 확인 필요','tag-check'));
+     else rows.push(row(name+' 소득기준 비교',matches?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과',matches?'tag-ok':'tag-no'));
    }
    rows.push(row('차상위계층 소득기준 (50%)',fmt(Math.round(m*.5))+' /월'));
    rows.push(row('차상위계층 소득기준 비교',a<=Math.round(m*.5)?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과'));
+   note.push('의료급여는 29~64세 근로·사업소득 공제 등 별도 규칙이 있으므로 이 간이 계산의 판정값을 의료급여 자격으로 사용하면 안 됩니다. 의료급여 부양의무자 등도 별도 심사합니다.');
    note.push('소득인정액은 간이 계산값입니다. 재산 인정·공제·부채·자동차 특례·가구 특성에 따른 조정 전후로 실제 결과가 달라질 수 있습니다. 기준 이내라도 수급이 확정되는 것은 아닙니다.');
-   const matched=[['생계급여',.32],['의료급여',.4],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=Math.round(m*p)).map(([name])=>name);
+   const matched=[['생계급여',.32],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=Math.round(m*p)).map(([name])=>name);
    const livingGap=Math.max(0,Math.round(m*.32)-a);
-   summary={tone:matched.length?'review':'not',status:matched.length?'선정 소득기준 해당 가능':'입력한 조건에서는 소득기준 초과',amount:matched.length&&livingGap>0?fmt(livingGap):'지급액 확인 필요',unit:livingGap>0?'생계급여 기준액과의 차액 · 월 (실제 지급액 아님)':'정확한 지급액은 기관 심사 후 확인',detail:matched.length?year+'년 기준 해당 가능 항목: '+matched.join(' · '):year+'년 간이 소득인정액이 네 가지 급여의 선정기준을 초과합니다.',reasons:['간이 월 소득인정액: '+fmt(a),'가구원 수: '+h+'명','재산·부채·공제의 실제 인정액은 조사에 따라 변동']};
+   summary={tone:matched.length?'review':'not',status:matched.length?'선정 소득기준 해당 가능':'입력한 조건에서는 소득기준 초과',amount:matched.length&&livingGap>0?fmt(livingGap):'지급액 확인 필요',unit:livingGap>0?'생계급여 기준액과의 차액 · 월 (실제 지급액 아님)':'정확한 지급액은 기관 심사 후 확인',detail:matched.length?year+'년 간이 소득기준 해당 가능: '+matched.join(' · ')+' (의료급여 별도 확인)':year+'년 생계·주거·교육급여의 간이 소득기준을 초과합니다. 의료급여는 별도 확인이 필요합니다.',reasons:['간이 월 소득인정액: '+fmt(a),'가구원 수: '+h+'명','재산·부채·공제의 실제 인정액은 조사에 따라 변동']};
  }else if(key==='disability'){
    const threshold=v.couple==='yes'?2240000:1400000; const ok=+v.age>=18&&v.severity==='yes'&&+v.recognized<=threshold;
    rows.push(row('2026년 선정기준',fmt(threshold)+' /월'));
@@ -243,7 +245,7 @@ function render(key,v){
  const x=spec[key],r=calc(key,v),info=r.summary,year=(key==='basic'&&v.year==='2027')?'2027':'2026';
  const reasons=info.reasons.map(x=>'<li>'+esc(x)+'</li>').join('');
  const links=(source[key]||[]).map(([name,url])=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(name)+' ↗</a>').join('');
- const sectionCards= key==='basic' ? '<div class="outcome-grid">'+['생계급여','의료급여','주거급여','교육급여'].map(name=>{const found=r.rows.find((v,i)=>v.includes(name+' 소득기준 비교'));const hit=found&&found.includes('기준 이내');return '<div class="outcome-mini"><b>'+name+'</b><strong class="'+(hit?'text-review':'text-not')+'">'+(hit?'소득기준 해당 가능':'소득기준 초과')+'</strong><small>추가 심사 필요</small></div>'}).join('')+'</div>' : '';
+ const sectionCards= key==='basic' ? '<div class="outcome-grid">'+['생계급여','의료급여','주거급여','교육급여'].map(name=>{const found=r.rows.find((v,i)=>v.includes(name+' 소득기준 비교'));const medical=name==='의료급여';const hit=found&&found.includes('기준 이내');return '<div class="outcome-mini"><b>'+name+'</b><strong class="'+(medical?'text-review':hit?'text-review':'text-not')+'">'+(medical?'전용 공제·부양의무자 확인 필요':hit?'소득기준 해당 가능':'소득기준 초과')+'</strong><small>추가 심사 필요</small></div>'}).join('')+'</div>' : '';
  result.innerHTML='<div class="outcome-top"><p class="outcome-kicker">내 복지 결과 · '+year+'년 기준 사전 점검</p><h2>'+esc(x.title)+'</h2><div class="outcome-grid outcome-main"><div class="outcome-panel outcome-'+esc(info.tone)+'"><span>대상 가능성</span><strong>'+esc(info.status)+'</strong><small>'+esc(info.detail)+'</small></div><div class="outcome-panel"><span>확인 가능한 금액</span><strong>'+esc(info.amount)+'</strong><small>'+esc(info.unit)+'</small></div></div>'+sectionCards+'</div><section class="outcome-next"><h3>왜 이렇게 나왔나요?</h3><ul>'+reasons+'</ul><p class="result-note">수급 확정 판정이 아닙니다. 제도별 공제·특례·신청시기와 담당기관 심사를 확인해야 합니다.</p></section><section class="outcome-actions"><h3>다음 단계</h3><div class="source-links">'+links+'</div><a class="result-cafe" href="https://cafe.naver.com/mywelfarelab" target="_blank" rel="noopener noreferrer">카페에서 신청·서류 질문하기 ↗</a></section><details class="outcome-details"><summary>계산 근거와 세부 기준 자세히 보기</summary>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>적용 범위와 주의사항</h3><p>'+esc(x.caveat)+'</p></details><button type="button" class="calc-action" id="calcAgain">입력값 수정해서 다시 계산 →</button>';
  result.hidden=false;result.focus({preventScroll:true});result.scrollIntoView({behavior:'smooth',block:'start'});
 }
