@@ -56,3 +56,12 @@ footer .footer-trust a{display:inline-block;margin:0 7px}
 .editorial-grid small{margin-top:auto;font-size:12px;line-height:1.6;color:#697994}
 @media(max-width:1000px){.editorial-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.editorial-grid{grid-template-columns:1fr;gap:9px}.editorial-grid a{min-height:140px;padding:18px}.editorial-section .section-head{display:block}.editorial-all{display:inline-block;min-height:44px;padding:12px 0;margin-top:7px}.editorial-grid strong{font-size:16px}}
+
+/* Official 2027 policy feature, designed to remain readable on small screens */
+.future-guide{padding-top:12px;padding-bottom:12px}
+.future-guide>a{display:flex;gap:11px;flex-direction:column;text-decoration:none;border-radius:20px;padding:25px 29px;background:linear-gradient(115deg,#e8f2ff,#f5eaff);border:1px solid #d4e1fa;color:#173565}
+.future-guide>a span{font-size:12px;color:#355ca8;font-weight:900}
+.future-guide>a strong{font-size:clamp(19px,2.6vw,27px);line-height:1.45;word-break:keep-all}
+.future-guide>a small{font-size:14px;color:#345fc1;font-weight:800}
+.future-guide>a:focus-visible{outline:3px solid #416dd2;outline-offset:3px}
+@media(max-width:600px){.future-guide>a{padding:21px 17px}.future-guide>a strong{font-size:19px}}
