@@ -154,11 +154,22 @@ const dp=context.testPensionEstimate({pRegion:'metro',workerSelf:1200000,workerS
 assert.strictEqual(dp.income,210000); // (1.2m-950k)*70% + (1m-950k)*70%
 assert.strictEqual(dp.total,210000);
 const disabilityNo=calc('disability',{age:'17',severity:'yes',couple:'no',recognized:'0'});
+assert.strictEqual(disabilityNo.summary.amount,'금액 산정 보류');
+const disabilityAbove=calc('disability',{age:'50',severity:'yes',couple:'no',recognized:'1500000'});
+assert.strictEqual(disabilityAbove.summary.amount,'금액 산정 보류');
+assert(disabilityAbove.summary.status.includes('기준 초과'));
+const disabilityUnknown=calc('disability',{age:'50',severity:'unknown',couple:'no',recognized:'500000'});
+assert.strictEqual(disabilityUnknown.summary.amount,'금액 산정 보류');
+const disabilitySenior=calc('disability',{age:'68',severity:'yes',couple:'no',recognized:'300000'});
+assert.strictEqual(disabilitySenior.summary.amount,'금액 산정 보류');
+
 assert(!disabilityNo.summary.status.includes('충족 가능'));
 const verified2026Single=calc('single',{persons:'2',familyStatus:'yes',parentAge:'45',childAge:'7',highSchool:'no',additionalCategory:'no',recognized:'2700000'});
 assert(verified2026Single.summary.status.includes('해당 가능'));
 const rentCap=calc('youth',{birthYear:'2000',independent:'yes',homeless:'yes',publicLease:'no',exempt:'yes',youngPersons:'1',youngIncome:'0',youngProperty:'0',originPersons:'2',originIncome:'0',originProperty:'0',rent:'250000'});
 assert.strictEqual(rentCap.summary.amount,'200,000원');
+assert(rentCap.summary.status.includes('종료된 2026년 공고'));
+assert(rentCap.summary.unit.includes('현재 신청 가능액 아님'));
 const workLimit=calc('work',{household:'one',income:'32000000',property:'100000000',children:'1',hasEarned:'yes'});
 assert(workLimit.summary.status.includes('불충족'));
 const grantHalf=calc('work',{household:'one',income:'20000000',property:'170000000',children:'1',hasEarned:'yes'});
