@@ -3,6 +3,9 @@
 const MEDIAN=[0,2564238,4199292,5359036,6494738,7556719,8555952];
 // 2027년 기준 중위소득: 2026-07-28 제80차 중앙생활보장위원회 공식 확정
 const MEDIAN_2027=[0,2736042,4480645,5718091,6929885,8063019,9129201];
+// 보건복지부 공식 2026 선정기준표: 반올림 재계산보다 고시 금액 우선.
+const OFFICIAL_LIMITS_2026={living:[0,820556,1343773,1714892,2078316,2418150,2737905],medical:[0,1025695,1679717,2143614,2597895,3022688,3422381],housing:[0,1230834,2015660,2572337,3117474,3627225,4106857],education:[0,1282119,2099646,2679518,3247369,3778360,4277976]};
+function benefitLimit(year,persons,category){const key={생계급여:'living',의료급여:'medical',주거급여:'housing',교육급여:'education'}[category];if(year==='2026'&&key&&OFFICIAL_LIMITS_2026[key][persons]!=null)return OFFICIAL_LIMITS_2026[key][persons];return Math.round((year==='2027'?MEDIAN_2027:MEDIAN)[persons]*({living:.32,medical:.40,housing:.48,education:.50}[key]||.5));}
 const fmt=n=>Number(n).toLocaleString('ko-KR')+'원';
 const source={
  basic:[['보건복지부 2026 선정기준','https://www.mohw.go.kr/menu.es?mid=a10708010300'],['2027년 확정 기준 보도자료','https://m.korea.kr/briefing/pressReleaseView.do?newsId=156772464'],['복지로 국민기초생활보장 모의계산','https://www.bokjiro.go.kr/ssis-tbu/twatbz/mkclAsis/mkclPage.do'],['정부24 혜택알리미','https://plus.gov.kr/']],
@@ -33,6 +36,8 @@ const assetFields=[
  s('workerType2','두 번째 소득자의 공제 유형',[['none','두 번째 근로소득자 없음'],['regular','일반 근로·사업소득 (30%)'],['disabled','등록장애인·65세 이상 등: 20만원+잔액 30% 공제'],['rehab','장애인 직업재활·정신질환자 직업재활 참여소득: 20만원+잔액 50% 공제'],['young','34세 이하 청년·대학생: 60만원+잔액 30% 공제'],['special','다른 소득공제 특례 또는 잘 모름']]),
  n('earned2','두 번째 가구원의 월 근로·사업소득 (원)','가구원 2명에게 근로소득이 있으면 개인별 공제를 따로 계산합니다. 없으면 0원.',1),
  s('extraWageEarners','근로·사업소득이 있는 가구원이 더 있나요?',[['no','아니요 (최대 두 명)'],['yes','예 (세 명 이상 · 정확한 개별 계산 별도 확인 필요)']]),
+ n('verifiedExpenses','기관이 인정한 가구특성별 지출비용 (월 원)','장애·질병·양육 등으로 지출했더라도 자동 공제되는 것은 아닙니다. 담당기관에서 인정한 월 금액만 입력하세요.',1),
+ s('expenseStatus','가구특성별 지출 공제 확인',[['none','별도 공제 신청하지 않음'],['verified','담당기관에서 인정금액 확인'],['unknown','공제 대상 여부 또는 금액 미확인']]),
  n('otherIncome','월 연금·기타 소득 (원)','국민연금 등 소득으로 산입되는 금액만 입력하세요. 장애인연금·한부모 아동양육비 등 법정 제외 소득은 중복 입력하지 마세요.',1),
  n('rentalDeposit','거주 주택 임차보증금 (원)','주거용 임차보증금인 경우 95%를 재산가액으로 평가합니다. 실제 인정 여부는 확인이 필요합니다.',1),
  n('homeAsset','본인 소유 거주주택 재산가액 (원)','직접 거주하는 소유 주택의 조사 기준 가액. 임차보증금과 중복 입력하지 마세요.',1),
@@ -81,7 +86,10 @@ function incomeEstimate(v){
  const deduction1=wageDeduction(earned,type);
  const deduction2=type2==='none'?0:wageDeduction(earned2,type2);
  const deductible=deduction1+deduction2;
- const income=Math.max(0,earned+earned2-deductible+other);
+ const verifiedExpenses=Number(v.verifiedExpenses||0);
+ const expenseConfirmed=v.expenseStatus==='verified';
+ const expenseApplied=expenseConfirmed?verifiedExpenses:0;
+ const income=Math.max(0,earned+earned2-deductible+other-expenseApplied);
  const rawDeposit=Number(v.rentalDeposit||0),depositAssessed=Math.round(rawDeposit*.95);
  const rawHome=Number(v.homeAsset||0)+depositAssessed;
  const cap=RESIDENTIAL_CAP[v.region]||RESIDENTIAL_CAP.other;
@@ -106,12 +114,12 @@ function incomeEstimate(v){
  const subtractDebt=(amount)=>{const deduct=Math.min(amount,leftDebt);leftDebt-=deduct;return amount-deduct;};
  housing=subtractDebt(housing);general=subtractDebt(general);finance=subtractDebt(finance);
  const property=housing*.0104+general*.0417+finance*.0626+fullCar;
- const unresolved=(v.extraWageEarners==='yes')||(requestedSavings>longDeduction)||(debt>0&&v.debtStatus!=='verified')||(type==='special'&&earned>0)||(type2==='special'&&earned2>0)||
+ const unresolved=(v.expenseStatus==='unknown')||(verifiedExpenses>0&&!expenseConfirmed)||(v.extraWageEarners==='yes')||(requestedSavings>longDeduction)||(debt>0&&v.debtStatus!=='verified')||(type==='special'&&earned>0)||(type2==='special'&&earned2>0)||
    (type2==='none'&&earned2>0)||(v.carType==='unknown'&&Number(v.carValue||0)>0);
  return {income:Math.round(income),property:Math.round(property),total:Math.round(income+property),
    baseAllowance:base,residentialCap:cap,rentalDepositAssessed:depositAssessed,
    financialPreparationDeduction:Math.min(rawFin,5000000),longSavingsDeduction:longDeduction,requestedSavingsDeduction:requestedSavings,savingsYears,
-   incomeDeduction:Math.round(deductible),incomeDeduction1:Math.round(deduction1),incomeDeduction2:Math.round(deduction2),
+   expenseApplied,expenseConfirmed,incomeDeduction:Math.round(deductible),incomeDeduction1:Math.round(deduction1),incomeDeduction2:Math.round(deduction2),
    homeNet:housing,generalNet:general,financeNet:finance,ordinaryCar,fullCar,
    unresolved,unusedDebt:leftDebt};
 }
@@ -169,6 +177,7 @@ function calc(key,v){
   rows.push(row('가구원 1 근로소득 공제',fmt(estimate.incomeDeduction1)));
   rows.push(row('가구원 2 근로소득 공제',fmt(estimate.incomeDeduction2)));
   rows.push(row('근로소득 공제 합계',fmt(estimate.incomeDeduction)));
+  rows.push(row('기관 확인 가구특성별 지출비용 공제',fmt(estimate.expenseApplied)));
   rows.push(row('지역별 기본재산액 공제',fmt(estimate.baseAllowance)));
   rows.push(row('주거용재산 인정 한도',fmt(estimate.residentialCap)));
   rows.push(row('임차보증금 재산평가액(95%)',fmt(estimate.rentalDepositAssessed)));
@@ -190,17 +199,17 @@ function calc(key,v){
    rows.push(row('기준 연도',year+'년'));
    rows.push(row('가구원 수',h+'명'));
    for(const [name,ratio] of [['생계급여',.32],['의료급여',.40],['주거급여',.48],['교육급여',.50]]){
-     const limit=Math.round(m*ratio),matches=a<=limit;
+     const limit=benefitLimit(year,h,name),matches=a<=limit;
      rows.push(row(name+' 선정기준 ('+(ratio*100)+'%)',fmt(limit)+' /월'));
      if(name==='의료급여') rows.push(row(name+' 소득기준 비교','의료급여 전용 소득공제·부양의무자 기준 확인 필요','tag-check'));
      else rows.push(row(name+' 소득기준 비교',matches?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과',matches?'tag-ok':'tag-no'));
    }
-   rows.push(row('차상위계층 소득기준 (50%)',fmt(Math.round(m*.5))+' /월'));
-   rows.push(row('차상위계층 소득기준 비교',a<=Math.round(m*.5)?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과'));
+   rows.push(row('차상위계층 소득기준 (50%)',fmt(benefitLimit(year,h,'교육급여'))+' /월'));
+   rows.push(row('차상위계층 소득기준 비교',a<=benefitLimit(year,h,'교육급여')?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과'));
    note.push('의료급여는 29~64세 근로·사업소득 공제 등 별도 규칙이 있으므로 이 간이 계산의 판정값을 의료급여 자격으로 사용하면 안 됩니다. 의료급여 부양의무자 등도 별도 심사합니다.');
    note.push('소득인정액은 간이 계산값입니다. 재산 인정·공제·부채·자동차 특례·가구 특성에 따른 조정 전후로 실제 결과가 달라질 수 있습니다. 기준 이내라도 수급이 확정되는 것은 아닙니다.');
-   const matched=[['생계급여',.32],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=Math.round(m*p)).map(([name])=>name);
-   const livingGap=Math.max(0,Math.round(m*.32)-a);
+   const matched=[['생계급여',.32],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=benefitLimit(year,h,name)).map(([name])=>name);
+   const livingGap=Math.max(0,benefitLimit(year,h,'생계급여')-a);
    summary={tone:matched.length?'review':'not',status:matched.length?'선정 소득기준 해당 가능':'입력한 조건에서는 소득기준 초과',amount:matched.length&&livingGap>0?fmt(livingGap):'지급액 확인 필요',unit:livingGap>0?'생계급여 기준액과의 차액 · 월 (실제 지급액 아님)':'정확한 지급액은 기관 심사 후 확인',detail:matched.length?year+'년 간이 소득기준 해당 가능: '+matched.join(' · ')+' (의료급여 별도 확인)':year+'년 생계·주거·교육급여의 간이 소득기준을 초과합니다. 의료급여는 별도 확인이 필요합니다.',reasons:['간이 월 소득인정액: '+fmt(a),'가구원 수: '+h+'명','재산·부채·공제의 실제 인정액은 조사에 따라 변동']};
  }else if(key==='disability'){
    const threshold=v.couple==='yes'?2240000:1400000; const ok=+v.age>=18&&v.severity==='yes'&&+v.recognized<=threshold;
@@ -302,11 +311,11 @@ function render(key,v){
  const x=spec[key],r=calc(key,v),info=r.summary,year=(key==='basic'&&v.year==='2027')?'2027':'2026';
  const reasons=info.reasons.map(x=>'<li>'+esc(x)+'</li>').join('');
  const links=(source[key]||[]).map(([name,url])=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(name)+' ↗</a>').join('');
- const sectionCards= key==='basic' ? '<div class="outcome-grid">'+['생계급여','의료급여','주거급여','교육급여'].map(name=>{const found=r.rows.find((v,i)=>v.includes(name+' 소득기준 비교'));const medical=name==='의료급여';const hit=found&&found.includes('기준 이내');return '<div class="outcome-mini"><b>'+name+'</b><strong class="'+(medical?'text-review':hit?'text-review':'text-not')+'">'+(medical?'전용 공제·부양의무자 확인 필요':hit?'소득기준 해당 가능':'소득기준 초과')+'</strong><small>추가 심사 필요</small></div>'}).join('')+'</div>' : '';
+ const sectionCards= key==='basic' ? '<div class="outcome-grid">'+['생계급여','의료급여','주거급여','교육급여'].map(name=>{const found=r.rows.find((v,i)=>v.includes(name+' 소득기준 비교'));const medical=name==='의료급여';const hit=found&&found.includes('기준 이내');const unresolved=info.status==='특례 확인 전 판정 불가';return '<div class="outcome-mini"><b>'+name+'</b><strong class="'+(medical?'text-review':hit?'text-review':'text-not')+'">'+(medical?'전용 공제·부양의무자 확인 필요':unresolved?'추가 정보 확인 필요':hit?'소득기준 해당 가능':'소득기준 초과')+'</strong><small>추가 심사 필요</small></div>'}).join('')+'</div>' : '';
  result.innerHTML='<div class="outcome-top"><p class="outcome-kicker">내 복지 결과 · '+year+'년 기준 사전 점검</p><h2>'+esc(x.title)+'</h2><div class="outcome-grid outcome-main"><div class="outcome-panel outcome-'+esc(info.tone)+'"><span>대상 가능성</span><strong>'+esc(info.status)+'</strong><small>'+esc(info.detail)+'</small></div><div class="outcome-panel"><span>확인 가능한 금액</span><strong>'+esc(info.amount)+'</strong><small>'+esc(info.unit)+'</small></div></div>'+sectionCards+'</div><section class="outcome-next"><h3>왜 이렇게 나왔나요?</h3><ul>'+reasons+'</ul><p class="result-note">수급 확정 판정이 아닙니다. 제도별 공제·특례·신청시기와 담당기관 심사를 확인해야 합니다.</p></section><section class="outcome-actions"><h3>다음 단계</h3><div class="source-links">'+links+'</div><a class="result-cafe" href="https://cafe.naver.com/mywelfarelab" target="_blank" rel="noopener noreferrer">카페에서 신청·서류 질문하기 ↗</a></section><details class="outcome-details"><summary>계산 근거와 세부 기준 자세히 보기</summary>'+table(r.rows)+r.note.map(t=>'<p class="result-note">⚠ '+esc(t)+'</p>').join('')+'<h3>적용 범위와 주의사항</h3><p>'+esc(x.caveat)+'</p></details><button type="button" class="calc-action" id="calcAgain">입력값 수정해서 다시 계산 →</button>';
  result.hidden=false;result.focus({preventScroll:true});result.scrollIntoView({behavior:'smooth',block:'start'});
 }
-el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}if((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))&&values.carType==='none'&&Number(values.carValue||0)>0){alert('자동차가액이 0원이 아닙니다. 자동차 처리 방식을 다시 선택하세요.');return;}for(const f of [...spec[chosen].fields,...((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if((f.type==='number'||f.type==='select')&&(!values[f.name]&&f.type==='select')){alert('선택하지 않은 항목이 있습니다.');return;}if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
+el.addEventListener('submit',e=>{e.preventDefault();const raw=new FormData(el);const values=Object.fromEntries(raw.entries());for(const [name,value] of Object.entries(values)){if(el.elements.namedItem(name)?.matches?.('input[data-money="true"]'))values[name]=String(value).replace(/,/g,'');}if((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))&&values.verifiedExpenses>0&&values.expenseStatus!=='verified'){alert('가구특성별 지출 공제는 기관이 인정한 금액만 적용할 수 있습니다. 확인 상태를 선택하거나 금액을 0으로 입력하세요.');return;}if((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))&&values.carType==='none'&&Number(values.carValue||0)>0){alert('자동차가액이 0원이 아닙니다. 자동차 처리 방식을 다시 선택하세요.');return;}for(const f of [...spec[chosen].fields,...((chosen==='basic'||(chosen==='single'&&values.amountMode==='auto'))?assetFields:[]),...(chosen==='disability'&&values.amountMode==='auto'?pensionAssetFields:[])]){if((f.type==='number'||f.type==='select')&&(!values[f.name]&&f.type==='select')){alert('선택하지 않은 항목이 있습니다.');return;}if(f.type==='number'&&!(f.name==='recognized'&&values.amountMode==='auto')){const value=Number(values[f.name]);if(!Number.isFinite(value)||value<0){alert('숫자를 0 이상으로 입력하세요.');return;}}}render(chosen,values);});
 document.querySelectorAll('.calc-tab').forEach(b=>b.addEventListener('click',()=>select(b.dataset.id)));
 result.addEventListener('click',e=>{if(e.target.id==='calcAgain'){result.hidden=true;el.querySelector('input,select')?.focus();document.querySelector('#calc-heading').scrollIntoView({behavior:'smooth',block:'start'});}});
 select(spec[location.hash.substring(1)]?location.hash.substring(1):'basic');
