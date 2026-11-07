@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://papasol614-png.github.io/mywelfarelab-home/sitemap.xml
