@@ -47,6 +47,7 @@ def test_topic(page,topic,width):
     assert page.locator('#calculator-form button[type="submit"]').is_visible()
     if topic=="basic":
         assert page.locator('select[name="year"]').input_value()=="2027"
+        assert page.locator('select[name="year"]').input_value()=="2027"
         page.locator('select[name="year"]').select_option("2027")
         page.locator('select[name="persons"]').select_option("2")
         page.locator('select[name="region"]').select_option("gyeonggi")
