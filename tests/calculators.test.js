@@ -78,7 +78,7 @@ assert(calc('scholarship',{segment:'9',childOrder:'normal',tuition:'3000000'}).s
 // Result-first view must not imply confirmed payment.
 context.testRender('basic',{year:'2027',persons:'2',amountMode:'auto',region:'gyeonggi',workerType:'regular',earned:'1000000',otherIncome:'0',homeAsset:'0',generalAsset:'0',financialAsset:'0',debts:'0',carType:'none',carValue:'0'});
 assert(nodes['#calculator-result'].innerHTML.includes('대상 가능성'));
-assert(nodes['#calculator-result'].innerHTML.includes('2027년 기준 사전 점검'));
+assert(nodes['#calculator-result'].innerHTML.includes('2027년 선정기준 사전 점검'));
 assert(nodes['#calculator-result'].innerHTML.includes('왜 이렇게 나왔나요?'));
 assert(nodes['#calculator-result'].innerHTML.includes('계산 근거와 세부 기준 자세히 보기'));
 assert(nodes['#calculator-result'].innerHTML.includes('실제 지급액')||nodes['#calculator-result'].innerHTML.includes('실제 지급액 아님'));
