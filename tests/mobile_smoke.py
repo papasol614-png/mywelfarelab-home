@@ -34,11 +34,11 @@ def audit(page,label):
     return info
 
 def fill_money_inputs(page):
-    fields=page.locator('#calculator-form input[data-money="true"]:visible')
+    fields=page.locator('#calculator-form input:visible')
     for i in range(fields.count()):
         field=fields.nth(i)
-        field.fill("0")
-        assert field.input_value()=="0"
+        if not field.input_value():field.fill("0")
+        assert field.input_value()!="",f"Required field blank: {field.get_attribute(\'name\')}"
 
 def test_topic(page,topic,width):
     page.locator(f'.calc-tab[data-id="{topic}"]').click()
@@ -46,7 +46,6 @@ def test_topic(page,topic,width):
     assert page.locator('#calculator-form').is_visible()
     assert page.locator('#calculator-form button[type="submit"]').is_visible()
     if topic=="basic":
-        assert page.locator('select[name="year"]').input_value()=="2027"
         assert page.locator('select[name="year"]').input_value()=="2027"
         page.locator('select[name="year"]').select_option("2027")
         page.locator('select[name="persons"]').select_option("2")
