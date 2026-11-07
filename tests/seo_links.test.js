@@ -9,8 +9,9 @@ for(const p of pages){
   if(!/<html lang="ko">/.test(html))errors.push(p+': document language missing');
   if(!/<meta name="viewport"/.test(html))errors.push(p+': viewport missing');
   if(!/<title>[^<]+<\/title>/.test(html))errors.push(p+': title missing');
+  if((html.match(/<h1\b/g)||[]).length!==1)errors.push(p+': expected exactly one h1');
   if(!/<meta name="description" content="[^"]{20,}"/.test(html))errors.push(p+': descriptive meta missing');
-  if((p==='index.html'||p==='calculator.html'||p==='guides.html'||p.startsWith('guides/'))&&!/<link rel="canonical"/.test(html))errors.push(p+': canonical missing');
+  if(!/<link rel="canonical"/.test(html))errors.push(p+': canonical missing');
   const targetPattern=/\b(?:href|src)="([^"]+)"/g;let m;
   while((m=targetPattern.exec(html))){
     const u=m[1].split(/[?#]/)[0];
