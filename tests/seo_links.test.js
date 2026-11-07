@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),assert=require('assert');
 const pages=['index.html','calculator.html','guides.html','help.html','about.html','privacy.html','methodology.html',
 'guides/basic-livelihood-2026.html','guides/rental-deposit-assets.html','guides/housing-benefit-2026.html',
 'guides/disability-pension-guide.html','guides/single-parent-benefits-2026.html','guides/earned-income-tax-credit.html',
-'guides/national-scholarship-2026.html','guides/youth-rent-support-2026.html'];
+'guides/national-scholarship-2026.html','guides/youth-rent-support-2026.html','guides/median-income-2027.html'];
 const guides=pages.filter(p=>p.startsWith('guides/'));let errors=[];
 for(const p of pages){
   const html=fs.readFileSync(p,'utf8');
@@ -25,7 +25,7 @@ const xmlUrls=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(x=>x[1]);
 for(const p of pages){const publicPath=p==='index.html'?'':p;
  if(!xmlUrls.includes('https://papasol614-png.github.io/mywelfarelab-home/'+publicPath))errors.push(p+': sitemap URL missing');
 }
-assert(guides.length>=8);
+assert(guides.length>=9);
 for(const p of guides){
  const s=fs.readFileSync(p,'utf8');
  const sections=(s.match(/<h2>/g)||[]).length;
