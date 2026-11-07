@@ -4,8 +4,14 @@ const nodes={'#calculator-form':dummy(),'#calc-heading':dummy(),'#calc-explainer
 const document={querySelector:s=>nodes[s]||dummy(),querySelectorAll:()=>[]};
 const context={document,location:{hash:''},history:{replaceState(){}},console,Number,String,Math,Array,Object,FormData,alert(){}};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;this.testMoney=formatMoneyInput;',context);
+vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;this.testMoney=formatMoneyInput;this.testBenefitLimit=benefitLimit;',context);
 const calc=context.testCalc, spec=context.testSpec;
+const official=context.testBenefitLimit;
+assert.strictEqual(official('2026',2,'생계급여'),1343773);
+assert.strictEqual(official('2026',2,'의료급여'),1679717);
+assert.strictEqual(official('2026',2,'주거급여'),2015660);
+assert.strictEqual(official('2026',2,'교육급여'),2099646);
+assert.strictEqual(official('2026',6,'주거급여'),4106857);
 assert.strictEqual(Object.keys(spec).length,6);
 for(const k of Object.keys(spec))assert(calc(k,Object.fromEntries(spec[k].fields.map(f=>[f.name,f.type==='select'?f.options[0][0]:'0']))).rows.length>0,k);
 const basic=calc('basic',{persons:'2',recognized:'1300000'});
@@ -87,6 +93,11 @@ assert.strictEqual(assetCase({region:'gyeonggi',financialAsset:20000000}).proper
 assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000}).property,939000);
 assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,debts:15000000}).property,0);
 assert.strictEqual(assetCase({region:'gyeonggi',homeAsset:80000000,financialAsset:20000000,longSavingsDeduction:10000000,longSavingsYears:'2'}).property,313000);
+const expenses=assetCase({region:'gyeonggi',earned:1000000,verifiedExpenses:100000,expenseStatus:'verified'});
+assert.strictEqual(expenses.income,600000);
+const expensesUnverified=assetCase({region:'gyeonggi',earned:1000000,verifiedExpenses:100000,expenseStatus:'unknown'});
+assert.strictEqual(expensesUnverified.income,700000);
+assert.strictEqual(expensesUnverified.unresolved,true);
 const earnings=assetCase({region:'seoul',earned:1100000,workerType:'disabled'});
 assert.strictEqual(earnings.income,630000);
 assert.strictEqual(earnings.incomeDeduction,470000);
