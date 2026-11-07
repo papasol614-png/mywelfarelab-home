@@ -210,7 +210,14 @@ function calc(key,v){
    rows.push(row('소득인정액',yes(+v.recognized<=threshold),+v.recognized<=threshold?'tag-ok':'tag-no'));
    rows.push(row('종합 사전 점검',ok?'주요 조건 충족 가능':'추가 확인 또는 기준 불충족',ok?'tag-ok':'tag-check'));
    note.push('2026년 월 기초급여 최고 349,700원이며 실제 수급액·부가급여는 별도 심사 결과에 따릅니다.');
-   summary={tone:ok?'review':'not',status:ok?'주요 조건 충족 가능':'연령·장애 정도·소득 중 확인 필요',amount:(+v.age>=18&&+v.age<65&&v.severity==='yes')?'최대 349,700원':'금액 확인 필요',unit:'2026년 기초급여 월 상한 · 개인별 실제액 아님',detail:'65세 이상은 기초급여 대신 기초연금 등 별도 제도를 확인해야 합니다.',reasons:['월 선정기준: '+fmt(threshold),'연령·중증장애 등록·직역연금 특례 별도 확인']};
+   const eligibleAge=+v.age>=18,eligibleWage=+v.recognized<=threshold,eligibleSeverity=v.severity==='yes';
+   const needsVerification=v.severity==='unknown';
+   summary={tone:ok?'review':needsVerification?'review':'not',
+     status:ok?'주요 조건 충족 가능':needsVerification?'중증장애 등록 요건 확인 필요':!eligibleAge?'연령 요건 미충족':!eligibleSeverity?'중증장애 등록 요건 미충족':'소득인정액 기준 초과',
+     amount:ok&&+v.age<65?'최대 349,700원':'금액 산정 보류',
+     unit:ok&&+v.age<65?'2026년 기초급여 월 최고액 · 예상 실수령액 아님':'대상 여부 및 기초급여·부가급여 조건 확인 필요',
+     detail:'직역연금 예외·부가급여·감액·자격 조사를 거쳐 실제 지급액이 결정됩니다. 65세 이상은 기초연금과의 관계를 별도로 확인해야 합니다.',
+     reasons:['월 선정기준: '+fmt(threshold),'입력 소득인정액: '+fmt(+v.recognized),'연령·중증장애 등록·직역연금 특례 별도 확인']};
  }else if(key==='single'){
    const median=MEDIAN[+v.persons],youth=+v.parentAge<=24,cert= Math.round(median*(youth?.72:.65)),benefit=Math.round(median*.65);
    rows.push(row('한부모 증명서 소득기준',fmt(cert)+' /월'));
@@ -252,7 +259,7 @@ function calc(key,v){
    rows.push(row('실제 월세 기준 지원상한',fmt(Math.min(+v.rent,200000))+' /월'));
    note.push('2026년 신규 신청기간은 종료됐습니다. 위 결과는 2026년 공고에 대한 가상 사전 점검이며 현재 신청 가능하다는 뜻이 아닙니다.');
    const prelim=ageok&&home&&incomeOk&&propOk&&origOk;
-   summary={tone:prelim?'review':'not',status:prelim?'주요 요건 해당 가능':'일부 주요 요건 불충족',amount:prelim?fmt(Math.min(+v.rent,200000)):'금액 확인 필요',unit:'월세 지원상한 · 실제 지급액 아님',detail:'신청 기간과 공고별 제외 조건을 반드시 확인해야 합니다.',reasons:['부모 별거·무주택·소득·재산 요건 검토','기존 수혜·중복지원 및 신청 시기 별도 확인']};
+   summary={tone:prelim?'review':'not',status:prelim?'종료된 2026년 공고의 주요 조건 해당 가능':'2026년 공고 주요 요건 불충족',amount:prelim?fmt(Math.min(+v.rent,200000)):'금액 산정 보류',unit:'2026년 모집의 월세 지원상한 · 현재 신청 가능액 아님',detail:'2026년 신규 접수는 5월 29일 종료됐습니다. 다음 공고의 접수기간·자격·중복지원 조건을 확인하세요.',reasons:['부모 별거·무주택·소득·재산 요건 검토','이 계산은 현재 신청을 접수하거나 선정·지급을 보장하지 않습니다.']};
  }else if(key==='work'){
    const limits={single:22000000,one:32000000,both:44000000},max={single:1650000,one:2850000,both:3300000};
    const income=+v.income,asset=+v.property,eligible=v.hasEarned==='yes'&&income<limits[v.household]&&asset<240000000;
