@@ -78,6 +78,8 @@ def test_topic(page,topic,width):
         page.locator('select[name="segment"]').select_option("1")
         page.locator('input[name="tuition"]').fill("5000000")
     page.locator('#calculator-form button[type="submit"]').click()
+    if not page.locator('#calculator-result').is_visible():
+        print('FORM ERROR',topic,page.evaluate('''() => [...document.querySelectorAll("#calculator-form :invalid")].map(e=>({name:e.name,value:e.value,message:e.validationMessage}))'''),flush=True)
     assert page.locator('#calculator-result').is_visible(),f"Result did not render for {topic}"
     assert page.locator('#calculator-result .outcome-panel').count()==2
     assert page.locator('#calculator-result summary').count()==1
