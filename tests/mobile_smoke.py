@@ -129,12 +129,12 @@ with sync_playwright() as pw:
                 audit(page,f"{path}-390")
         if width in (320,390,768):
             page.goto(BASE+"guides.html",wait_until="domcontentloaded")
-            assert page.locator(".hub-card").count()==8
+            assert page.locator(".hub-card").count()==9
             audit(page,f"guides-{width}")
             if width==390:page.screenshot(path=str(ART/"guides-390.png"),full_page=True)
             for slug in ("basic-livelihood-2026","rental-deposit-assets","housing-benefit-2026",
                          "disability-pension-guide","single-parent-benefits-2026","earned-income-tax-credit",
-                         "national-scholarship-2026","youth-rent-support-2026"):
+                         "national-scholarship-2026","youth-rent-support-2026","median-income-2027"):
                 page.goto(BASE+"guides/"+slug+".html",wait_until="domcontentloaded")
                 assert page.locator('h1').count()==1
                 assert page.locator('article a.primary[href^="../calculator.html#"]').count()==1
