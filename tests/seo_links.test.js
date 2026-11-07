@@ -47,10 +47,11 @@ for(const p of guides){
  if(!html.includes('내 복지 연구소'))errors.push(p+': source identity missing');
  if((html.match(/<a href="[^"]*\.html(?:#[^"]*)?"/g)||[]).length<3)errors.push(p+': too few internal contextual links');
 }
-for(const p of ['guides/basic-livelihood-2026.html','guides/rental-deposit-assets.html','guides/housing-benefit-2026.html']){
+for(const p of guides){
  const html=fs.readFileSync(p,'utf8');
- if(!/<table>/.test(html)||!/<caption>/.test(html))errors.push(p+': evidence comparison table missing');
+ if(!/<table>/.test(html)||!/<caption>/.test(html)||!/<th/.test(html))errors.push(p+': evidence comparison table missing');
  if(!/가상|간이/.test(html))errors.push(p+': example assumptions missing');
+ if(!html.includes('class="case-study"'))errors.push(p+': substantive worked example missing');
 }
 if(errors.length){console.error('SEO validation failed:\n'+errors.join('\n'));process.exit(1)}
-console.log('SEO checks passed: '+pages.length+' pages; '+guides.length+' original guides; internal links, canonical metadata, sitemap and official sources.');
+console.log('SEO checks passed: '+pages.length+' pages; '+guides.length+' guides with comparison tables, assumptions, context links; metadata, sitemap, robots and official sources.');
