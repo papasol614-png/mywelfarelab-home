@@ -208,7 +208,7 @@ function calc(key,v){
    rows.push(row('차상위계층 소득기준 비교',a<=benefitLimit(year,h,'교육급여')?'간이 추정액이 기준 이내':'간이 추정액이 기준 초과'));
    note.push('의료급여는 29~64세 근로·사업소득 공제 등 별도 규칙이 있으므로 이 간이 계산의 판정값을 의료급여 자격으로 사용하면 안 됩니다. 의료급여 부양의무자 등도 별도 심사합니다.');
    note.push('소득인정액은 간이 계산값입니다. 재산 인정·공제·부채·자동차 특례·가구 특성에 따른 조정 전후로 실제 결과가 달라질 수 있습니다. 기준 이내라도 수급이 확정되는 것은 아닙니다.');
-   const matched=[['생계급여',.32],['주거급여',.48],['교육급여',.5]].filter(([,p])=>a<=benefitLimit(year,h,name)).map(([name])=>name);
+   const matched=[['생계급여',.32],['주거급여',.48],['교육급여',.5]].filter(([name])=>a<=benefitLimit(year,h,name)).map(([name])=>name);
    const livingGap=Math.max(0,benefitLimit(year,h,'생계급여')-a);
    summary={tone:matched.length?'review':'not',status:matched.length?'선정 소득기준 해당 가능':'입력한 조건에서는 소득기준 초과',amount:matched.length&&livingGap>0?fmt(livingGap):'지급액 확인 필요',unit:livingGap>0?'생계급여 기준액과의 차액 · 월 (실제 지급액 아님)':'정확한 지급액은 기관 심사 후 확인',detail:matched.length?year+'년 간이 소득기준 해당 가능: '+matched.join(' · ')+' (의료급여 별도 확인)':year+'년 생계·주거·교육급여의 간이 소득기준을 초과합니다. 의료급여는 별도 확인이 필요합니다.',reasons:['간이 월 소득인정액: '+fmt(a),'가구원 수: '+h+'명','재산·부채·공제의 실제 인정액은 조사에 따라 변동']};
  }else if(key==='disability'){
