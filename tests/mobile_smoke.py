@@ -127,8 +127,23 @@ with sync_playwright() as pw:
                 page.goto(BASE+path)
                 assert page.locator('main h1').count()==1
                 audit(page,f"{path}-390")
+        if width in (320,390,768):
+            page.goto(BASE+"guides.html",wait_until="domcontentloaded")
+            assert page.locator(".hub-card").count()==8
+            audit(page,f"guides-{width}")
+            if width==390:page.screenshot(path=str(ART/"guides-390.png"),full_page=True)
+            for slug in ("basic-livelihood-2026","rental-deposit-assets","housing-benefit-2026",
+                         "disability-pension-guide","single-parent-benefits-2026","earned-income-tax-credit",
+                         "national-scholarship-2026","youth-rent-support-2026"):
+                page.goto(BASE+"guides/"+slug+".html",wait_until="domcontentloaded")
+                assert page.locator('h1').count()==1
+                assert page.locator('article a.primary[href^="../calculator.html#"]').count()==1
+                assert page.locator('.article-body section').count()>=6
+                audit(page,f"article-{slug}-{width}")
+                if width==390 and slug in ("basic-livelihood-2026","rental-deposit-assets"):
+                    page.screenshot(path=str(ART/f"article-{slug}-390.png"),full_page=True)
         assert not errors,f"Console JS errors on viewport {width}: {errors}"
         page.close()
     browser.close()
 (ART/"report.json").write_text(json.dumps(REPORT,ensure_ascii=False,indent=2),encoding="utf-8")
-print(f"COMPLETED: {len(SIZES)} viewports, {len(SIZES)*2+3*len(TOPICS)+4} viewport/page/form states",flush=True)
+print(f"COMPLETED: {len(SIZES)} viewports, expanded guides + 6 calculators + static pages",flush=True)
