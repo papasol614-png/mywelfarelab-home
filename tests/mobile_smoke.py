@@ -38,7 +38,7 @@ def fill_money_inputs(page):
     for i in range(fields.count()):
         field=fields.nth(i)
         if not field.input_value():field.fill("0")
-        assert field.input_value()!="",f"Required field blank: {field.get_attribute(\'name\')}"
+        assert field.input_value()!="","Required field blank: "+str(field.get_attribute("name"))
 
 def test_topic(page,topic,width):
     page.locator(f'.calc-tab[data-id="{topic}"]').click()
