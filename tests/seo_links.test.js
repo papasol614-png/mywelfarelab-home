@@ -34,5 +34,23 @@ for(const p of guides){
  if(!s.includes('공식 출처'))errors.push(p+': missing official source section');
  if(s.includes('100% 수급 확정'))errors.push(p+': misleading eligibility promise');
 }
+// Search robots, sitemap, canonical URL and quality checks.
+const robots=fs.readFileSync('robots.txt','utf8');
+if(!robots.includes('Sitemap: https://papasol614-png.github.io/mywelfarelab-home/sitemap.xml'))errors.push('robots.txt: sitemap missing');
+if(/Disallow:\s*\//.test(robots))errors.push('robots.txt: disallows all crawlers');
+for(const p of guides){
+ const html=fs.readFileSync(p,'utf8');
+ const canonical=(html.match(/<link rel="canonical" href="([^"]+)"/)||[])[1];
+ const expected='https://papasol614-png.github.io/mywelfarelab-home/'+p;
+ if(canonical!==expected)errors.push(p+': canonical mismatch');
+ if(!html.includes('dateModified'))errors.push(p+': article structured-data modification date missing');
+ if(!html.includes('내 복지 연구소'))errors.push(p+': source identity missing');
+ if((html.match(/<a href="[^"]*\.html(?:#[^"]*)?"/g)||[]).length<3)errors.push(p+': too few internal contextual links');
+}
+for(const p of ['guides/basic-livelihood-2026.html','guides/rental-deposit-assets.html','guides/housing-benefit-2026.html']){
+ const html=fs.readFileSync(p,'utf8');
+ if(!/<table>/.test(html)||!/<caption>/.test(html))errors.push(p+': evidence comparison table missing');
+ if(!/가상|간이/.test(html))errors.push(p+': example assumptions missing');
+}
 if(errors.length){console.error('SEO validation failed:\n'+errors.join('\n'));process.exit(1)}
 console.log('SEO checks passed: '+pages.length+' pages; '+guides.length+' original guides; internal links, canonical metadata, sitemap and official sources.');
