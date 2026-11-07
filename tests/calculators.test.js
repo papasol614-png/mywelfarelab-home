@@ -6,6 +6,11 @@ const context={document,location:{hash:''},history:{replaceState(){}},console,Nu
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('calculator.js','utf8')+'\nthis.testCalc=calc;this.testSpec=spec;this.testIncomeEstimate=incomeEstimate;this.testPensionEstimate=pensionEstimate;this.testRender=render;this.testMoney=formatMoneyInput;this.testBenefitLimit=benefitLimit;',context);
 const calc=context.testCalc, spec=context.testSpec;
+assert.strictEqual(spec.basic.fields[0].options[0][0],'2027','2027 should be default select option');
+assert.strictEqual(context.testBenefitLimit('2027',2,'생계급여'),1433806);
+assert.strictEqual(context.testBenefitLimit('2027',2,'의료급여'),1792258);
+assert.strictEqual(context.testBenefitLimit('2027',2,'주거급여'),2150710);
+assert.strictEqual(context.testBenefitLimit('2027',2,'교육급여'),2240323);
 const official=context.testBenefitLimit;
 assert.strictEqual(official('2026',2,'생계급여'),1343773);
 assert.strictEqual(official('2026',2,'의료급여'),1679717);
